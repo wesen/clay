@@ -1,6 +1,5 @@
 # clay
 
-![potter](https://user-images.githubusercontent.com/128441/217436490-f24c8ab4-0202-4091-9f0e-db3e97729934.jpg)
 
 ```
  _______  ___      _______  __   __ 
@@ -25,6 +24,9 @@
 |   |_| ||       ||       ||   |___ | ||_|| | _____| |
 |_______||_______||_______||_______||_|   |_||_______|
 ```
+
+![potter](https://user-images.githubusercontent.com/128441/217436490-f24c8ab4-0202-4091-9f0e-db3e97729934.jpg)
+
 
 All the little helpers and tools that are not really useful enough for NON-GOLEMS.
 
