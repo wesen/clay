@@ -80,6 +80,13 @@ func InitLogger() error {
 }
 
 func InitViper(appName string, rootCmd *cobra.Command) error {
+	rootCmd.PersistentFlags().Bool("with-caller", false, "Log caller")
+	rootCmd.PersistentFlags().String("log-level", "info", "Log level (debug, info, warn, error, fatal)")
+	rootCmd.PersistentFlags().String("log-format", "text", "Log format (json, text)")
+	rootCmd.PersistentFlags().String("log-file", "", "Log file (default: stderr)")
+
+	rootCmd.PersistentFlags().Bool("verbose", false, "Verbose output")
+
 	rootCmd.PersistentFlags().String("config", "",
 		fmt.Sprintf("Path to config file (default ~/.%s/config.yml)", appName))
 
