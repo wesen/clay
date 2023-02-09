@@ -24,7 +24,7 @@ type CommandLocations struct {
 }
 
 func (c *CommandLocations) LoadCommands(
-	loader glazed_cmds.YAMLCommandLoader,
+	loader glazed_cmds.FSCommandLoader,
 	helpSystem *help.HelpSystem,
 	rootCmd *cobra.Command,
 ) ([]glazed_cmds.Command, []*glazed_cmds.CommandAlias, error) {
@@ -37,10 +37,7 @@ func (c *CommandLocations) LoadCommands(
 	var commands []glazed_cmds.Command
 	var aliases []*glazed_cmds.CommandAlias
 	for _, e := range c.Embedded {
-		yamlLoader := glazed_cmds.NewYAMLFSCommandLoader(
-			loader, e.Name, e.Root,
-		)
-		commands_, aliases_, err := yamlLoader.LoadCommandsFromFS(e.FS, ".")
+		commands_, aliases_, err := loader.LoadCommandsFromFS(e.FS, e.Root)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -80,7 +77,7 @@ func (c *CommandLocations) LoadCommands(
 }
 
 func (c *CommandLocations) loadRepositoryCommands(
-	loader glazed_cmds.YAMLCommandLoader,
+	loader glazed_cmds.FSCommandLoader,
 	helpSystem *help.HelpSystem,
 ) ([]glazed_cmds.Command, []*glazed_cmds.CommandAlias, error) {
 
@@ -105,10 +102,7 @@ func (c *CommandLocations) loadRepositoryCommands(
 			log.Warn().Msgf("Repository %s is not a directory", repository)
 		} else {
 			docDir := fmt.Sprintf("%s/doc", repository)
-			yamlLoader := glazed_cmds.NewYAMLFSCommandLoader(
-				loader, "file", repository,
-			)
-			commands_, aliases_, err := yamlLoader.LoadCommandsFromFS(os.DirFS(repository), ".")
+			commands_, aliases_, err := loader.LoadCommandsFromFS(os.DirFS(repository), ".")
 			if err != nil {
 				return nil, nil, err
 			}
