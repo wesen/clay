@@ -3,7 +3,7 @@ module github.com/go-go-golems/clay
 go 1.19
 
 require (
-	github.com/go-go-golems/glazed v0.2.4
+	github.com/go-go-golems/glazed v0.2.5-0.20230209040643-10add7791234
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
