@@ -66,6 +66,7 @@ func InitLoggerWithConfig(config *LogConfig) error {
 
 func InitLogger() error {
 	logLevel := viper.GetString("log-level")
+	logLevel = strings.ToLower(logLevel)
 	verbose := viper.GetBool("verbose")
 	if verbose && logLevel != "trace" {
 		logLevel = "debug"
