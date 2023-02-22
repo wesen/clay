@@ -32,6 +32,20 @@ func CastStringMap[To any, From any](m map[string]From) (map[string]To, bool) {
 	return ret, true
 }
 
+func CastStringMap2[To any, From any](m interface{}) (map[string]To, bool) {
+	casted, ok := m.(map[string]From)
+	if !ok {
+		// try to cast to map[string]interface{}
+		casted2, ok := m.(map[string]interface{})
+		if !ok {
+			return map[string]To{}, false
+		}
+		return CastStringMap[To, interface{}](casted2)
+	}
+
+	return CastStringMap[To, From](casted)
+}
+
 func CastMapMember[To any](m map[string]interface{}, k string) (*To, bool) {
 	v, ok := m[k]
 	if !ok {
