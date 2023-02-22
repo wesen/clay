@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"fmt"
+	"github.com/go-go-golems/glazed/pkg/cli"
 	glazed_cmds "github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/help"
 	"github.com/rs/zerolog/log"
@@ -59,16 +60,8 @@ func (c *CommandLocations) LoadCommands(
 	commands = append(commands, repositoryCommands...)
 	aliases = append(aliases, repositoryAliases...)
 
-	var cobraCommands []glazed_cmds.CobraCommand
-	for _, command := range commands {
-		cobraCommand, ok := command.(glazed_cmds.CobraCommand)
-		if !ok {
-			return nil, nil, fmt.Errorf("command %s is not a cobra command", command.Description().Name)
-		}
-		cobraCommands = append(cobraCommands, cobraCommand)
-	}
-
-	err = glazed_cmds.AddCommandsToRootCommand(rootCmd, cobraCommands, aliases)
+	// here is where i need to set the connection factory and add the sqleton layers
+	err = cli.AddCommandsToRootCommand(rootCmd, commands, aliases)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -3,7 +3,7 @@ module github.com/go-go-golems/clay
 go 1.19
 
 require (
-	github.com/go-go-golems/glazed v0.2.5-0.20230209230455-03ed8a509375
+	github.com/go-go-golems/glazed v0.2.10-0.20230221222452-918a17295a05
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
@@ -45,6 +45,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
