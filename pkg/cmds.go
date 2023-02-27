@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-go-golems/glazed/pkg/cli"
 	glazed_cmds "github.com/go-go-golems/glazed/pkg/cmds"
+	"github.com/go-go-golems/glazed/pkg/cmds/layers"
 	"github.com/go-go-golems/glazed/pkg/help"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
@@ -20,8 +21,50 @@ type EmbeddedCommandLocation struct {
 }
 
 type CommandLocations struct {
-	Embedded     []EmbeddedCommandLocation
-	Repositories []string
+	Embedded         []EmbeddedCommandLocation
+	Repositories     []string
+	AdditionalLayers []layers.ParameterLayer
+	HelpSystem       *help.HelpSystem
+}
+
+type LoadCommandsOption func(*CommandLocations)
+
+func NewCommandLocations(options ...LoadCommandsOption) *CommandLocations {
+	ret := &CommandLocations{
+		Embedded:         make([]EmbeddedCommandLocation, 0),
+		Repositories:     make([]string, 0),
+		AdditionalLayers: make([]layers.ParameterLayer, 0),
+	}
+
+	for _, o := range options {
+		o(ret)
+	}
+
+	return ret
+}
+
+func WithEmbeddedLocations(locations ...EmbeddedCommandLocation) LoadCommandsOption {
+	return func(c *CommandLocations) {
+		c.Embedded = append(c.Embedded, locations...)
+	}
+}
+
+func WithRepositories(locations ...string) LoadCommandsOption {
+	return func(c *CommandLocations) {
+		c.Repositories = append(c.Repositories, locations...)
+	}
+}
+
+func WithAdditionalLayers(layers ...layers.ParameterLayer) LoadCommandsOption {
+	return func(c *CommandLocations) {
+		c.AdditionalLayers = append(c.AdditionalLayers, layers...)
+	}
+}
+
+func WithHelpSystem(helpSystem *help.HelpSystem) LoadCommandsOption {
+	return func(c *CommandLocations) {
+		c.HelpSystem = helpSystem
+	}
 }
 
 func (c *CommandLocations) LoadCommands(
@@ -47,7 +90,11 @@ func (c *CommandLocations) LoadCommands(
 
 		err = helpSystem.LoadSectionsFromFS(e.FS, e.DocRoot)
 		if err != nil {
-			return nil, nil, err
+			// if err is PathError, it means that the directory does not exist
+			// and we can safely ignore it
+			if _, ok := err.(*fs.PathError); !ok {
+				return nil, nil, err
+			}
 		}
 
 	}
@@ -59,6 +106,11 @@ func (c *CommandLocations) LoadCommands(
 
 	commands = append(commands, repositoryCommands...)
 	aliases = append(aliases, repositoryAliases...)
+
+	for _, command := range commands {
+		description := command.Description()
+		description.Layers = append(description.Layers, c.AdditionalLayers...)
+	}
 
 	// here is where i need to set the connection factory and add the sqleton layers
 	err = cli.AddCommandsToRootCommand(rootCmd, commands, aliases)
