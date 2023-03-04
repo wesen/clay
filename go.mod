@@ -3,7 +3,7 @@ module github.com/go-go-golems/clay
 go 1.19
 
 require (
-	github.com/go-go-golems/glazed v0.2.17
+	github.com/go-go-golems/glazed v0.2.30
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.15.0
@@ -20,6 +20,7 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/aymanbagabas/go-osc52 v1.0.3 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.6.0 // indirect
 	github.com/charmbracelet/glamour v0.6.0 // indirect
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -52,7 +53,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/tj/go-naturaldate v1.3.0 // indirect
-	github.com/wesen/filepathx v1.0.1-0.20230227021146-d1c2e34eff6e // indirect
 	github.com/yuin/goldmark v1.5.4 // indirect
 	github.com/yuin/goldmark-emoji v1.0.1 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
