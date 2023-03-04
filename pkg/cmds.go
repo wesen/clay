@@ -71,6 +71,7 @@ func (c *CommandLocations) LoadCommands(
 	loader glazed_cmds.FSCommandLoader,
 	helpSystem *help.HelpSystem,
 	rootCmd *cobra.Command,
+	options ...glazed_cmds.CommandDescriptionOption,
 ) ([]glazed_cmds.Command, []*glazed_cmds.CommandAlias, error) {
 	// Load the variables from the environment
 
@@ -81,7 +82,11 @@ func (c *CommandLocations) LoadCommands(
 	var commands []glazed_cmds.Command
 	var aliases []*glazed_cmds.CommandAlias
 	for _, e := range c.Embedded {
-		commands_, aliases_, err := loader.LoadCommandsFromFS(e.FS, e.Root)
+		options_ := append([]glazed_cmds.CommandDescriptionOption{
+			glazed_cmds.WithPrependSource(e.Root),
+			glazed_cmds.WithStripParentsPrefix([]string{e.Root}),
+		}, options...)
+		commands_, aliases_, err := loader.LoadCommandsFromFS(e.FS, e.Root, options_...)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -99,7 +104,7 @@ func (c *CommandLocations) LoadCommands(
 
 	}
 
-	repositoryCommands, repositoryAliases, err := c.loadRepositoryCommands(loader, helpSystem)
+	repositoryCommands, repositoryAliases, err := c.loadRepositoryCommands(loader, helpSystem, options...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -124,6 +129,7 @@ func (c *CommandLocations) LoadCommands(
 func (c *CommandLocations) loadRepositoryCommands(
 	loader glazed_cmds.FSCommandLoader,
 	helpSystem *help.HelpSystem,
+	options ...glazed_cmds.CommandDescriptionOption,
 ) ([]glazed_cmds.Command, []*glazed_cmds.CommandAlias, error) {
 
 	commands := make([]glazed_cmds.Command, 0)
@@ -147,10 +153,18 @@ func (c *CommandLocations) loadRepositoryCommands(
 			log.Warn().Msgf("Repository %s is not a directory", repository)
 		} else {
 			docDir := fmt.Sprintf("%s/doc", repository)
-			commands_, aliases_, err := loader.LoadCommandsFromFS(os.DirFS(repository), ".")
+			options_ := append(options,
+				glazed_cmds.WithPrependSource(repository),
+				glazed_cmds.WithStripParentsPrefix([]string{"."}),
+			)
+			commands_, aliases_, err := loader.LoadCommandsFromFS(
+				os.DirFS(repository),
+				".",
+				options_...)
 			if err != nil {
 				return nil, nil, err
 			}
+
 			commands = append(commands, commands_...)
 			aliases = append(aliases, aliases_...)
 
