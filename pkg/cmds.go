@@ -2,7 +2,6 @@ package pkg
 
 import (
 	"fmt"
-	"github.com/go-go-golems/glazed/pkg/cli"
 	glazed_cmds "github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
 	"github.com/go-go-golems/glazed/pkg/help"
@@ -67,21 +66,31 @@ func WithHelpSystem(helpSystem *help.HelpSystem) LoadCommandsOption {
 	}
 }
 
-func (c *CommandLocations) LoadCommands(
+type CommandLoader[T glazed_cmds.Command] struct {
+	locations *CommandLocations
+}
+
+func NewCommandLoader[T glazed_cmds.Command](locations *CommandLocations) *CommandLoader[T] {
+	return &CommandLoader[T]{
+		locations: locations,
+	}
+}
+
+func (c *CommandLoader[T]) LoadCommands(
 	loader glazed_cmds.FSCommandLoader,
 	helpSystem *help.HelpSystem,
 	rootCmd *cobra.Command,
 	options ...glazed_cmds.CommandDescriptionOption,
-) ([]glazed_cmds.Command, []*glazed_cmds.CommandAlias, error) {
+) ([]T, []*glazed_cmds.CommandAlias, error) {
 	// Load the variables from the environment
 
 	log.Debug().
 		Str("config", viper.ConfigFileUsed()).
 		Msg("Loaded configuration")
 
-	var commands []glazed_cmds.Command
+	var commands []T
 	var aliases []*glazed_cmds.CommandAlias
-	for _, e := range c.Embedded {
+	for _, e := range c.locations.Embedded {
 		options_ := append([]glazed_cmds.CommandDescriptionOption{
 			glazed_cmds.WithPrependSource(e.Root),
 			glazed_cmds.WithStripParentsPrefix([]string{e.Root}),
@@ -90,7 +99,13 @@ func (c *CommandLocations) LoadCommands(
 		if err != nil {
 			return nil, nil, err
 		}
-		commands = append(commands, commands_...)
+		for _, command := range commands_ {
+			cmd, ok := command.(T)
+			if !ok {
+				return nil, nil, fmt.Errorf("command %s is not a GlazeCommand", command.Description().Name)
+			}
+			commands = append(commands, cmd)
+		}
 		aliases = append(aliases, aliases_...)
 
 		err = helpSystem.LoadSectionsFromFS(e.FS, e.DocRoot)
@@ -114,28 +129,22 @@ func (c *CommandLocations) LoadCommands(
 
 	for _, command := range commands {
 		description := command.Description()
-		description.Layers = append(description.Layers, c.AdditionalLayers...)
-	}
-
-	// here is where i need to set the connection factory and add the sqleton layers
-	err = cli.AddCommandsToRootCommand(rootCmd, commands, aliases)
-	if err != nil {
-		return nil, nil, err
+		description.Layers = append(description.Layers, c.locations.AdditionalLayers...)
 	}
 
 	return commands, aliases, nil
 }
 
-func (c *CommandLocations) loadRepositoryCommands(
+func (c *CommandLoader[T]) loadRepositoryCommands(
 	loader glazed_cmds.FSCommandLoader,
 	helpSystem *help.HelpSystem,
 	options ...glazed_cmds.CommandDescriptionOption,
-) ([]glazed_cmds.Command, []*glazed_cmds.CommandAlias, error) {
+) ([]T, []*glazed_cmds.CommandAlias, error) {
 
-	commands := make([]glazed_cmds.Command, 0)
+	commands := make([]T, 0)
 	aliases := make([]*glazed_cmds.CommandAlias, 0)
 
-	for _, repository := range c.Repositories {
+	for _, repository := range c.locations.Repositories {
 		repository = os.ExpandEnv(repository)
 
 		// check that repository exists and is a directory
@@ -165,7 +174,13 @@ func (c *CommandLocations) loadRepositoryCommands(
 				return nil, nil, err
 			}
 
-			commands = append(commands, commands_...)
+			for _, command := range commands_ {
+				glazeCommand, ok := command.(T)
+				if !ok {
+					return nil, nil, fmt.Errorf("command %s is not a GlazeCommand", command.Description().Name)
+				}
+				commands = append(commands, glazeCommand)
+			}
 			aliases = append(aliases, aliases_...)
 
 			_, err = os.Stat(docDir)
