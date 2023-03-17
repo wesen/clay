@@ -21,9 +21,6 @@ build:
 	go generate ./...
 	go build ./...
 
-goreleaser:
-	goreleaser release --snapshot --rm-dist
-
 tag-major:
 	git tag $(shell svu major)
 
