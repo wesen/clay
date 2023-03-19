@@ -36,7 +36,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer watcher.Close()
+	defer func(watcher *fsnotify.Watcher) {
+		_ = watcher.Close()
+	}(watcher)
 
 	// Add each path to the watcher
 	for _, path := range w.paths {
@@ -53,6 +55,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Debug().Msg("Context cancelled, stopping watcher")
 			return ctx.Err()
 		case event, ok := <-watcher.Events:
 			if !ok {
@@ -73,8 +76,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 			// if a new directory is created, add it to the watcher
 			if event.Op&fsnotify.Create == fsnotify.Create {
 				info, err := os.Stat(event.Name)
+
 				if err != nil {
-					return err
+					log.Debug().Err(err).Str("path", event.Name).Msg("Could not stat path")
+					continue
 				}
 				if info.IsDir() {
 					log.Debug().Str("path", event.Name).Msg("Adding new directory to watcher")
@@ -111,7 +116,6 @@ func (w *Watcher) Run(ctx context.Context) error {
 				log.Debug().Str("path", event.Name).Msg("Skipping event because it is not a write or create event")
 				continue
 			}
-			log.Info().Str("path", event.Name).Msg("File modified")
 			if w.callback != nil {
 				err = w.callback(event.Name)
 				if err != nil {
