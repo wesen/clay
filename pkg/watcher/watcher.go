@@ -67,7 +67,6 @@ func (w *Watcher) Run(ctx context.Context) error {
 
 			// if it is a deletion, remove the directory from the watcher
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
-				log.Debug().Str("path", event.Name).Msg("Removing directory from watcher")
 				err = removePathsWithPrefix(watcher, event.Name)
 				if err != nil {
 					return err
