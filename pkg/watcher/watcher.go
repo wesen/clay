@@ -11,7 +11,8 @@ import (
 	"strings"
 )
 
-type Callback func(path string) error
+type WriteCallback func(path string) error
+type RemoveCallback func(path string) error
 
 // Watcher provides a way to recursively watch a set of paths for changes.
 // It recursively adds all directories present (and created in the future)
@@ -20,15 +21,16 @@ type Callback func(path string) error
 // You can provide a doublestar mask to filter out paths. For example, to
 // only watch for changes to .txt files, you can provide "**/*.txt".
 type Watcher struct {
-	paths    []string
-	masks    []string
-	callback Callback
+	paths          []string
+	masks          []string
+	writeCallback  WriteCallback
+	removeCallback RemoveCallback
 }
 
 // Run is a blocking loop that will watch the paths provided and call the
 func (w *Watcher) Run(ctx context.Context) error {
-	if w.callback == nil {
-		return errors.New("no callback provided")
+	if w.writeCallback == nil {
+		return errors.New("no writeCallback provided")
 	}
 
 	// Create a new watcher
@@ -112,16 +114,23 @@ func (w *Watcher) Run(ctx context.Context) error {
 				}
 			}
 
-			if event.Op&fsnotify.Write != fsnotify.Write && event.Op&fsnotify.Create != fsnotify.Create {
-				log.Debug().Str("path", event.Name).Msg("Skipping event because it is not a write or create event")
-				continue
-			}
-			if w.callback != nil {
-				err = w.callback(event.Name)
+			isWriteEvent := event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create
+			isRemoveEvent := event.Op&fsnotify.Rename == fsnotify.Rename || event.Op&fsnotify.Remove == fsnotify.Remove
+
+			if isWriteEvent && w.writeCallback != nil {
+				err = w.writeCallback(event.Name)
 				if err != nil {
 					return err
 				}
 			}
+
+			if isRemoveEvent && w.removeCallback != nil {
+				err = w.removeCallback(event.Name)
+				if err != nil {
+					return err
+				}
+			}
+
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				return nil
@@ -145,11 +154,22 @@ func WithMask(masks ...string) Option {
 	}
 }
 
-func NewWatcher(callback Callback, options ...Option) *Watcher {
+func WithWriteCallback(callback WriteCallback) Option {
+	return func(w *Watcher) {
+		w.writeCallback = callback
+	}
+}
+
+func WithRemoveCallback(callback RemoveCallback) Option {
+	return func(w *Watcher) {
+		w.removeCallback = callback
+	}
+}
+
+func NewWatcher(options ...Option) *Watcher {
 	ret := &Watcher{
-		paths:    []string{},
-		callback: callback,
-		masks:    []string{},
+		paths: []string{},
+		masks: []string{},
 	}
 
 	for _, opt := range options {
