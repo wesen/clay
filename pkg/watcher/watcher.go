@@ -66,12 +66,13 @@ func (w *Watcher) Run(ctx context.Context) error {
 			log.Debug().Str("event", event.String()).Msg("Received fsnotify event")
 
 			// if it is a deletion, remove the directory from the watcher
+			// TODO(manuel, 2023-03-27) There's a race condition here where a rename is a Create followed by a Remove.
+			// See also https://github.com/go-go-golems/cliopatra/issues/10
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				err = removePathsWithPrefix(watcher, event.Name)
 				if err != nil {
 					return err
 				}
-				continue
 			}
 
 			// if a new directory is created, add it to the watcher
@@ -89,6 +90,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 						return err
 					}
 					continue
+				} else {
+					log.Debug().Str("path", event.Name).Msg("Adding path to watchlist")
+					err = watcher.Add(event.Name)
+					log.Debug().Err(err).Strs("watchlist", watcher.WatchList()).Msg("Watchlist")
 				}
 			}
 
@@ -183,6 +188,7 @@ func removePathsWithPrefix(watcher *fsnotify.Watcher, name string) error {
 	// we do the "recursion" by checking the watchlist of the watcher for all watched directories
 	// that has name as prefix
 	watchlist := watcher.WatchList()
+	log.Debug().Strs("watchlist", watchlist).Str("name", name).Msg("Removing paths with prefix")
 	for _, path := range watchlist {
 		if strings.HasPrefix(path, name) {
 			log.Debug().Str("path", path).Msg("Removing path from watcher")
