@@ -106,6 +106,29 @@ func TestAddTwoCommands(t *testing.T) {
 	assert.Len(t, commands, 0)
 }
 
+func TestQueryEmptySubbranch(t *testing.T) {
+	node := NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{})
+	require.NotNil(t, node)
+
+	commands := node.CollectCommands([]string{"test"}, true)
+	assert.Len(t, commands, 0)
+
+	cmd1 := makeCommand([]string{}, "test")
+	node.InsertCommand(cmd1.Description().Parents, cmd1)
+
+	cmd2 := makeCommand([]string{}, "test2")
+	node.InsertCommand(cmd2.Description().Parents, cmd2)
+
+	commands = node.CollectCommands([]string{}, true)
+	require.Len(t, commands, 2)
+
+	commands = node.CollectCommands([]string{"test"}, true)
+	assert.Len(t, commands, 0)
+
+	commands = node.CollectCommands([]string{}, true)
+	assert.Len(t, commands, 2)
+}
+
 func TestAddCommandDeeperLevels(t *testing.T) {
 	node := NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{})
 	require.NotNil(t, node)
@@ -141,4 +164,114 @@ func TestAddCommandDeeperLevels(t *testing.T) {
 	require.Len(t, commands, 2)
 	assert.Equal(t, "test", commands[0].Description().Name)
 	assert.Equal(t, "test2", commands[1].Description().Name)
+}
+
+func TestAddCommandMultipleDeeperLevels(t *testing.T) {
+	node := NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{})
+	require.NotNil(t, node)
+
+	cmd1 := makeCommand([]string{"a", "b", "c"}, "test")
+	node.InsertCommand(cmd1.Description().Parents, cmd1)
+	cmd2 := makeCommand([]string{"a", "b1", "c"}, "test2")
+	node.InsertCommand(cmd2.Description().Parents, cmd2)
+	cmd3 := makeCommand([]string{"a", "b2", "c"}, "test3")
+	node.InsertCommand(cmd3.Description().Parents, cmd3)
+	cmd4 := makeCommand([]string{"a", "b", "c"}, "test4")
+	node.InsertCommand(cmd4.Description().Parents, cmd4)
+	cmd5 := makeCommand([]string{"a", "b1", "c"}, "test5")
+	node.InsertCommand(cmd5.Description().Parents, cmd5)
+
+	commands := node.CollectCommands([]string{"a", "b", "c"}, true)
+	require.Len(t, commands, 2)
+	assert.Equal(t, "test", commands[0].Description().Name)
+	assert.Equal(t, "test4", commands[1].Description().Name)
+
+	commands = node.CollectCommands([]string{"a", "b1", "c"}, true)
+	require.Len(t, commands, 2)
+	assert.Equal(t, "test2", commands[0].Description().Name)
+	assert.Equal(t, "test5", commands[1].Description().Name)
+
+	commands = node.CollectCommands([]string{"a", "b2", "c"}, true)
+	require.Len(t, commands, 1)
+	assert.Equal(t, "test3", commands[0].Description().Name)
+
+	commands = node.CollectCommands([]string{"a"}, false)
+	assert.Len(t, commands, 0)
+
+	commands = node.CollectCommands([]string{"a"}, true)
+	require.Len(t, commands, 5)
+	assert.Equal(t, "test", commands[0].Description().Name)
+	assert.Equal(t, "test4", commands[1].Description().Name)
+	assert.Equal(t, "test2", commands[2].Description().Name)
+	assert.Equal(t, "test5", commands[3].Description().Name)
+	assert.Equal(t, "test3", commands[4].Description().Name)
+}
+
+func TestRemoveCommandDeeperLevels(t *testing.T) {
+	node := NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{})
+	require.NotNil(t, node)
+
+	cmd1 := makeCommand([]string{"a", "b", "c"}, "test")
+	node.InsertCommand(cmd1.Description().Parents, cmd1)
+	cmd2 := makeCommand([]string{"a", "b", "c"}, "test2")
+	node.InsertCommand(cmd2.Description().Parents, cmd2)
+
+	removedCommands := node.Remove([]string{"a", "b", "c", "test"})
+	assert.Len(t, removedCommands, 1)
+	assert.Equal(t, "test", removedCommands[0].Description().Name)
+
+	commands := node.CollectCommands([]string{"a", "b", "c"}, true)
+	require.Len(t, commands, 1)
+	assert.Equal(t, "test2", commands[0].Description().Name)
+
+	removedCommands = node.Remove([]string{"a", "b", "c", "test2"})
+	assert.Len(t, removedCommands, 1)
+	assert.Equal(t, "test2", removedCommands[0].Description().Name)
+
+	commands = node.CollectCommands([]string{"a", "b", "c"}, true)
+	assert.Len(t, commands, 0)
+}
+
+func TestRemoveCommandMultipleDeeperLevels(t *testing.T) {
+	node := NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{})
+	require.NotNil(t, node)
+
+	cmd1 := makeCommand([]string{"a", "b", "c"}, "test")
+	node.InsertCommand(cmd1.Description().Parents, cmd1)
+	cmd2 := makeCommand([]string{"a", "b1", "c"}, "test2")
+	node.InsertCommand(cmd2.Description().Parents, cmd2)
+	cmd3 := makeCommand([]string{"a", "b2", "c"}, "test3")
+	node.InsertCommand(cmd3.Description().Parents, cmd3)
+	cmd4 := makeCommand([]string{"a", "b", "c"}, "test4")
+	node.InsertCommand(cmd4.Description().Parents, cmd4)
+	cmd5 := makeCommand([]string{"a", "b1", "c"}, "test5")
+	node.InsertCommand(cmd5.Description().Parents, cmd5)
+
+	removedCommands := node.Remove([]string{"a", "b", "c", "test"})
+	assert.Len(t, removedCommands, 1)
+	assert.Equal(t, "test", removedCommands[0].Description().Name)
+
+	commands := node.CollectCommands([]string{"a", "b", "c"}, true)
+	require.Len(t, commands, 1)
+	assert.Equal(t, "test4", commands[0].Description().Name)
+
+	removedCommands = node.Remove([]string{"a", "b1", "c", "test2"})
+	assert.Len(t, removedCommands, 1)
+	assert.Equal(t, "test2", removedCommands[0].Description().Name)
+
+	commands = node.CollectCommands([]string{"a", "b1", "c"}, true)
+	require.Len(t, commands, 1)
+	assert.Equal(t, "test5", commands[0].Description().Name)
+
+	removedCommands = node.Remove([]string{"a", "b2", "c", "test3"})
+	assert.Len(t, removedCommands, 1)
+	assert.Equal(t, "test3", removedCommands[0].Description().Name)
+
+	commands = node.CollectCommands([]string{"a", "b2", "c"}, true)
+	assert.Len(t, commands, 0)
+
+	commands = node.CollectCommands([]string{"a"}, true)
+	assert.Len(t, commands, 2)
+	assert.Equal(t, "test4", commands[0].Description().Name)
+	assert.Equal(t, "test5", commands[1].Description().Name)
 }
