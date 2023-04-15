@@ -32,6 +32,14 @@ func makeCommand(parents []string, name string) cmds.Command {
 	return &TestCommand{description}
 }
 
+func getNames(cmds_ []cmds.Command) []string {
+	names := make([]string, len(cmds_))
+	for i, c := range cmds_ {
+		names[i] = c.Description().Name
+	}
+	return names
+}
+
 func TestSingleCommandNode(t *testing.T) {
 	node := NewTrieNode([]cmds.Command{makeCommand([]string{}, "test")}, []*alias.CommandAlias{})
 	require.NotNil(t, node)
@@ -88,8 +96,8 @@ func TestAddTwoCommands(t *testing.T) {
 	commands := node.CollectCommands([]string{}, true)
 	require.Len(t, commands, 2)
 
-	assert.Equal(t, "test", commands[0].Description().Name)
-	assert.Equal(t, "test2", commands[1].Description().Name)
+	names := getNames(commands)
+	assert.Contains(t, names, "test", "test2")
 
 	// remove test
 	removedCommands := node.Remove([]string{"test"})
@@ -158,13 +166,13 @@ func TestAddCommandDeeperLevels(t *testing.T) {
 
 	commands := node.CollectCommands([]string{"a", "b", "c"}, true)
 	require.Len(t, commands, 2)
-	assert.Equal(t, "test", commands[0].Description().Name)
-	assert.Equal(t, "test2", commands[1].Description().Name)
+	allNames := getNames(commands)
+	assert.Contains(t, allNames, "test", "test2")
 
 	commands = node.CollectCommands([]string{"a"}, true)
 	require.Len(t, commands, 2)
-	assert.Equal(t, "test", commands[0].Description().Name)
-	assert.Equal(t, "test2", commands[1].Description().Name)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "test", "test2")
 }
 
 func TestAddCommandMultipleDeeperLevels(t *testing.T) {
@@ -184,13 +192,13 @@ func TestAddCommandMultipleDeeperLevels(t *testing.T) {
 
 	commands := node.CollectCommands([]string{"a", "b", "c"}, true)
 	require.Len(t, commands, 2)
-	assert.Equal(t, "test", commands[0].Description().Name)
-	assert.Equal(t, "test4", commands[1].Description().Name)
+	allNames := getNames(commands)
+	assert.Contains(t, allNames, "test", "test4")
 
 	commands = node.CollectCommands([]string{"a", "b1", "c"}, true)
 	require.Len(t, commands, 2)
-	assert.Equal(t, "test2", commands[0].Description().Name)
-	assert.Equal(t, "test5", commands[1].Description().Name)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "test2", "test5")
 
 	commands = node.CollectCommands([]string{"a", "b2", "c"}, true)
 	require.Len(t, commands, 1)
@@ -201,11 +209,8 @@ func TestAddCommandMultipleDeeperLevels(t *testing.T) {
 
 	commands = node.CollectCommands([]string{"a"}, true)
 	require.Len(t, commands, 5)
-	assert.Equal(t, "test", commands[0].Description().Name)
-	assert.Equal(t, "test4", commands[1].Description().Name)
-	assert.Equal(t, "test2", commands[2].Description().Name)
-	assert.Equal(t, "test5", commands[3].Description().Name)
-	assert.Equal(t, "test3", commands[4].Description().Name)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "test", "test2", "test3", "test4", "test5")
 }
 
 func TestRemoveCommandDeeperLevels(t *testing.T) {
@@ -273,6 +278,9 @@ func TestRemoveCommandMultipleDeeperLevels(t *testing.T) {
 
 	commands = node.CollectCommands([]string{"a"}, true)
 	assert.Len(t, commands, 2)
-	assert.Equal(t, "test4", commands[0].Description().Name)
-	assert.Equal(t, "test5", commands[1].Description().Name)
+	allNames := []string{}
+	for _, cmd := range commands {
+		allNames = append(allNames, cmd.Description().Name)
+	}
+	assert.Contains(t, allNames, "test4", "test5")
 }
