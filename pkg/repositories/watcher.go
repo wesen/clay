@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-go-golems/clay/pkg/watcher"
 	"github.com/go-go-golems/glazed/pkg/cmds"
+	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"github.com/go-go-golems/glazed/pkg/helpers/cast"
 	"github.com/rs/zerolog/log"
 	"os"
@@ -11,7 +12,7 @@ import (
 
 func WatchRepositories(
 	ctx context.Context,
-	loader cmds.FSCommandLoader,
+	loader loaders.FSCommandLoader,
 	r *Repository,
 	options ...watcher.Option,
 ) error {
@@ -19,7 +20,8 @@ func WatchRepositories(
 	options = append(options,
 		watcher.WithWriteCallback(func(path string) error {
 			log.Debug().Msgf("Loading %s", path)
-			commands, aliases, err := loader.LoadCommandsFromFS(fs, path)
+			// XXX need to pass CommandDescriptionOption
+			commands, aliases, err := loader.LoadCommandsFromFS(fs, path, nil, nil)
 			if err != nil {
 				return err
 			}

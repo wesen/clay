@@ -3,10 +3,11 @@ package cmds
 import (
 	"fmt"
 	glazed_cmds "github.com/go-go-golems/glazed/pkg/cmds"
+	"github.com/go-go-golems/glazed/pkg/cmds/alias"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
+	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"github.com/go-go-golems/glazed/pkg/help"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"io/fs"
 	"os"
@@ -77,11 +78,10 @@ func NewCommandLoader[T glazed_cmds.Command](locations *CommandLocations) *Comma
 }
 
 func (c *CommandLoader[T]) LoadCommands(
-	loader glazed_cmds.FSCommandLoader,
+	loader loaders.FSCommandLoader,
 	helpSystem *help.HelpSystem,
-	rootCmd *cobra.Command,
 	options ...glazed_cmds.CommandDescriptionOption,
-) ([]T, []*glazed_cmds.CommandAlias, error) {
+) ([]T, []*alias.CommandAlias, error) {
 	// Load the variables from the environment
 
 	log.Debug().
@@ -89,13 +89,17 @@ func (c *CommandLoader[T]) LoadCommands(
 		Msg("Loaded configuration")
 
 	var commands []T
-	var aliases []*glazed_cmds.CommandAlias
+	var aliases []*alias.CommandAlias
 	for _, e := range c.locations.Embedded {
 		options_ := append([]glazed_cmds.CommandDescriptionOption{
-			glazed_cmds.WithPrependSource(e.Root),
+			glazed_cmds.WithPrependSource("embed:" + e.Name + ":"),
 			glazed_cmds.WithStripParentsPrefix([]string{e.Root}),
 		}, options...)
-		commands_, aliases_, err := loader.LoadCommandsFromFS(e.FS, e.Root, options_...)
+		aliasOptions := []alias.Option{
+			alias.WithPrependSource("embed:" + e.Name + ":"),
+			alias.WithStripParentsPrefix([]string{e.Root}),
+		}
+		commands_, aliases_, err := loader.LoadCommandsFromFS(e.FS, e.Root, options_, aliasOptions)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -136,13 +140,13 @@ func (c *CommandLoader[T]) LoadCommands(
 }
 
 func (c *CommandLoader[T]) loadRepositoryCommands(
-	loader glazed_cmds.FSCommandLoader,
+	loader loaders.FSCommandLoader,
 	helpSystem *help.HelpSystem,
 	options ...glazed_cmds.CommandDescriptionOption,
-) ([]T, []*glazed_cmds.CommandAlias, error) {
+) ([]T, []*alias.CommandAlias, error) {
 
 	commands := make([]T, 0)
-	aliases := make([]*glazed_cmds.CommandAlias, 0)
+	aliases := make([]*alias.CommandAlias, 0)
 
 	for _, repository := range c.locations.Repositories {
 		repository = os.ExpandEnv(repository)
@@ -163,13 +167,18 @@ func (c *CommandLoader[T]) loadRepositoryCommands(
 		} else {
 			docDir := fmt.Sprintf("%s/doc", repository)
 			options_ := append(options,
-				glazed_cmds.WithPrependSource(repository),
+				glazed_cmds.WithPrependSource(repository+"/"),
 				glazed_cmds.WithStripParentsPrefix([]string{"."}),
 			)
+			aliasOptions := []alias.Option{
+				alias.WithPrependSource(repository + "/"),
+			}
 			commands_, aliases_, err := loader.LoadCommandsFromFS(
 				os.DirFS(repository),
 				".",
-				options_...)
+				options_,
+				aliasOptions,
+			)
 			if err != nil {
 				return nil, nil, err
 			}

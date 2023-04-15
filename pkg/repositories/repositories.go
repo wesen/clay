@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"github.com/go-go-golems/glazed/pkg/cmds"
+	"github.com/go-go-golems/glazed/pkg/cmds/alias"
 	"github.com/rs/zerolog/log"
 )
 
@@ -18,7 +19,7 @@ type TrieNode struct {
 }
 
 // NewTrieNode creates a new trie node.
-func NewTrieNode(commands []cmds.Command, aliases []*cmds.CommandAlias) *TrieNode {
+func NewTrieNode(commands []cmds.Command, aliases []*alias.CommandAlias) *TrieNode {
 	return &TrieNode{
 		Children: make(map[string]*TrieNode),
 		Commands: commands,
@@ -92,7 +93,7 @@ func (t *TrieNode) findNode(prefix []string, createNewNodes bool) *TrieNode {
 				log.Debug().Msgf("node %s not found", p)
 				return nil
 			}
-			node.Children[p] = NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{})
+			node.Children[p] = NewTrieNode([]cmds.Command{}, []*alias.CommandAlias{})
 		}
 		node = node.Children[p]
 	}
@@ -161,7 +162,7 @@ func WithRemoveCallback(callback RemoveCallback) RepositoryOption {
 // NewRepository creates a new repository.
 func NewRepository(options ...RepositoryOption) *Repository {
 	ret := &Repository{
-		Root: NewTrieNode([]cmds.Command{}, []*cmds.CommandAlias{}),
+		Root: NewTrieNode([]cmds.Command{}, []*alias.CommandAlias{}),
 	}
 	for _, opt := range options {
 		opt(ret)
