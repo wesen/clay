@@ -26,7 +26,7 @@ func NewTrieNode(commands []cmds.Command, aliases []*alias.CommandAlias) *TrieNo
 	}
 }
 
-// RemoveCommand removes a command from the trie.
+// Remove removes a command from the trie.
 func (t *TrieNode) Remove(prefix []string) []cmds.Command {
 	if len(prefix) == 0 {
 		commands := t.CollectCommands(prefix, true)
@@ -48,23 +48,21 @@ func (t *TrieNode) Remove(prefix []string) []cmds.Command {
 	}
 
 	childNode, ok := parentNode.Children[name]
-	if !ok {
-		// check if this is an actual command or alias
-		for i, c := range parentNode.Commands {
-			if c.Description().Name == name {
-				removedCommands = append(removedCommands, c)
-				parentNode.Commands = append(parentNode.Commands[:i], parentNode.Commands[i+1:]...)
-			}
-		}
+	if ok {
 
-		return removedCommands
+		// remove the node
+		commands := childNode.CollectCommands([]string{}, true)
+		removedCommands = append(removedCommands, commands...)
+
+		delete(parentNode.Children, name)
 	}
-
-	// remove the node
-	commands := childNode.CollectCommands(prefix, true)
-	removedCommands = append(removedCommands, commands...)
-
-	delete(parentNode.Children, name)
+	// check if this is an actual command or alias
+	for i, c := range parentNode.Commands {
+		if c.Description().Name == name {
+			removedCommands = append(removedCommands, c)
+			parentNode.Commands = append(parentNode.Commands[:i], parentNode.Commands[i+1:]...)
+		}
+	}
 
 	return removedCommands
 }
