@@ -149,8 +149,6 @@ func (c *CommandLoader[T]) loadRepositoryCommands(
 	aliases := make([]*alias.CommandAlias, 0)
 
 	for _, repository := range c.locations.Repositories {
-		repository = os.ExpandEnv(repository)
-
 		// check that repository exists and is a directory
 		s, err := os.Stat(repository)
 
