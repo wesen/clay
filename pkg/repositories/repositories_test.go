@@ -199,10 +199,13 @@ func TestAddThreeCommandsTwoLevelsDeep(t *testing.T) {
 	names = getNames(commands)
 	assert.Contains(t, names, "test2", "test3", "test4")
 
-	commands = node.CollectCommands([]string{"test"}, false)
-	require.Len(t, commands, 2)
+	commands = node.CollectCommands([]string{"test"}, true)
+	require.Len(t, commands, 3)
 	names = getNames(commands)
-	assert.Contains(t, names, "test2", "test3")
+	assert.Contains(t, names, "test2", "test3", "test")
+
+	commands = node.CollectCommands([]string{"test"}, false)
+	require.Len(t, commands, 0)
 
 	// remove test2
 	removedCommands = node.Remove([]string{"test", "test2"})
@@ -239,7 +242,7 @@ func TestQueryEmptySubbranch(t *testing.T) {
 	require.Len(t, commands, 2)
 
 	commands = node.CollectCommands([]string{"test"}, true)
-	assert.Len(t, commands, 0)
+	assert.Len(t, commands, 1)
 
 	commands = node.CollectCommands([]string{}, true)
 	assert.Len(t, commands, 2)
@@ -449,4 +452,43 @@ func TestInsertCommandWithSamePrefix(t *testing.T) {
 	require.Len(t, commands, 3)
 	allNames = getNames(commands)
 	assert.Contains(t, allNames, "test", "test2", "test3")
+}
+
+func TestCollectCommandsNonRecursiveTwoLevels(t *testing.T) {
+	node := NewTrieNode([]cmds.Command{}, []*alias.CommandAlias{})
+	require.NotNil(t, node)
+
+	cmd1 := MakeTestCommand([]string{"a"}, "b")
+	node.InsertCommand(cmd1.Description().Parents, cmd1)
+	cmd4 := MakeTestCommand([]string{"a", "b", "c"}, "test4")
+	node.InsertCommand(cmd4.Description().Parents, cmd4)
+
+	commands := node.CollectCommands([]string{"a", "b"}, false)
+	require.Len(t, commands, 1)
+	allNames := getNames(commands)
+	assert.Contains(t, allNames, "b")
+
+	commands = node.CollectCommands([]string{"a", "b"}, true)
+	require.Len(t, commands, 2)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "b", "test4")
+
+	commands = node.CollectCommands([]string{"a", "b", "c"}, true)
+	require.Len(t, commands, 1)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "test4")
+
+	commands = node.CollectCommands([]string{"a", "b", "c"}, false)
+	require.Len(t, commands, 0)
+
+	commands = node.CollectCommands([]string{"a", "b", "c", "test4"}, true)
+	require.Len(t, commands, 1)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "test4")
+
+	commands = node.CollectCommands([]string{"a", "b", "c", "test4"}, false)
+	require.Len(t, commands, 1)
+	allNames = getNames(commands)
+	assert.Contains(t, allNames, "test4")
+
 }
