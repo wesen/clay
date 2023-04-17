@@ -26,7 +26,7 @@ func NewTrieNode(commands []cmds.Command, aliases []*alias.CommandAlias) *TrieNo
 	}
 }
 
-// RemoveCommand removes a command from the trie.
+// Remove removes a command from the trie.
 func (t *TrieNode) Remove(prefix []string) []cmds.Command {
 	if len(prefix) == 0 {
 		commands := t.CollectCommands(prefix, true)
@@ -48,23 +48,21 @@ func (t *TrieNode) Remove(prefix []string) []cmds.Command {
 	}
 
 	childNode, ok := parentNode.Children[name]
-	if !ok {
-		// check if this is an actual command or alias
-		for i, c := range parentNode.Commands {
-			if c.Description().Name == name {
-				removedCommands = append(removedCommands, c)
-				parentNode.Commands = append(parentNode.Commands[:i], parentNode.Commands[i+1:]...)
-			}
-		}
+	if ok {
 
-		return removedCommands
+		// remove the node
+		commands := childNode.CollectCommands([]string{}, true)
+		removedCommands = append(removedCommands, commands...)
+
+		delete(parentNode.Children, name)
 	}
-
-	// remove the node
-	commands := childNode.CollectCommands(prefix, true)
-	removedCommands = append(removedCommands, commands...)
-
-	delete(parentNode.Children, name)
+	// check if this is an actual command or alias
+	for i, c := range parentNode.Commands {
+		if c.Description().Name == name {
+			removedCommands = append(removedCommands, c)
+			parentNode.Commands = append(parentNode.Commands[:i], parentNode.Commands[i+1:]...)
+		}
+	}
 
 	return removedCommands
 }
@@ -102,12 +100,32 @@ func (t *TrieNode) findNode(prefix []string, createNewNodes bool) *TrieNode {
 
 // CollectCommands collects all commands and aliases under the given prefix.
 func (t *TrieNode) CollectCommands(prefix []string, recurse bool) []cmds.Command {
-	node := t.findNode(prefix, false)
-	if node == nil {
-		return []cmds.Command{}
+	ret := make([]cmds.Command, 0)
+
+	// Check if the prefix identifies a single command.
+	if len(prefix) > 0 {
+		// try to get parent node
+		path := prefix[:len(prefix)-1]
+		parentNode := t.findNode(path, false)
+		name := prefix[len(prefix)-1]
+		if parentNode != nil {
+			for _, c := range parentNode.Commands {
+				if c.Description().Name == name {
+					ret = append(ret, c)
+					break
+				}
+			}
+		}
+
+		if !recurse {
+			return ret
+		}
 	}
 
-	var commands []cmds.Command
+	node := t.findNode(prefix, false)
+	if node == nil {
+		return ret
+	}
 
 	if !recurse {
 		return node.Commands
@@ -116,13 +134,13 @@ func (t *TrieNode) CollectCommands(prefix []string, recurse bool) []cmds.Command
 	// recurse into node to collect all commands and aliases
 	for _, child := range node.Children {
 		c := child.CollectCommands([]string{}, true)
-		commands = append(commands, c...)
+		ret = append(ret, c...)
 	}
 
 	// add commands and aliases from current node
-	commands = append(commands, node.Commands...)
+	ret = append(ret, node.Commands...)
 
-	return commands
+	return ret
 }
 
 type Repository struct {

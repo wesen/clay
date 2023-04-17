@@ -4,39 +4,65 @@ import (
 	"context"
 	"github.com/go-go-golems/clay/pkg/watcher"
 	"github.com/go-go-golems/glazed/pkg/cmds"
+	"github.com/go-go-golems/glazed/pkg/cmds/alias"
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
-	"github.com/go-go-golems/glazed/pkg/helpers/cast"
 	"github.com/rs/zerolog/log"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
-func WatchRepositories(
+func (r *Repository) Watch(
 	ctx context.Context,
-	loader loaders.FSCommandLoader,
-	r *Repository,
+	loader loaders.ReaderCommandLoader,
+	cmdOptions []cmds.CommandDescriptionOption,
 	options ...watcher.Option,
 ) error {
 	fs := os.DirFS("/")
 	options = append(options,
 		watcher.WithWriteCallback(func(path string) error {
 			log.Debug().Msgf("Loading %s", path)
-			// XXX need to pass CommandDescriptionOption
-			commands, aliases, err := loader.LoadCommandsFromFS(fs, path, nil, nil)
+			f, err := fs.Open(strings.TrimPrefix(path, "/"))
+			if err != nil {
+				log.Warn().Str("path", path).Err(err).Msg("could not open file")
+				return err
+			}
+			defer f.Close()
+
+			fullPath := path
+			// try to strip all r.Directories from path
+			// if it's not possible, then just use path
+			for _, dir := range r.Directories {
+				if strings.HasPrefix(path, dir) {
+					path = strings.TrimPrefix(path, dir)
+					break
+				}
+			}
+			path = strings.TrimPrefix(path, "/")
+
+			// get directory of file
+			parents := loaders.GetParentsFromDir(filepath.Dir(path))
+			cmdOptions_ := append(cmdOptions,
+				cmds.WithSource(fullPath),
+				cmds.WithParents(parents...))
+			aliasOptions := []alias.Option{
+				alias.WithSource(fullPath),
+				alias.WithParents(parents...),
+			}
+			commands, err := loader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
 			if err != nil {
 				return err
 			}
 			r.Add(commands...)
-			aliasCommands, ok := cast.CastList[cmds.Command](aliases)
-			if ok {
-				r.Add(aliasCommands...)
-			}
 			return nil
 		}),
 		watcher.WithRemoveCallback(func(path string) error {
 			log.Debug().Msgf("Removing %s", path)
 			r.Remove([]string{path})
 			return nil
-		}))
+		}),
+		watcher.WithPaths(r.Directories...),
+	)
 	w := watcher.NewWatcher(options...)
 
 	return w.Run(ctx)

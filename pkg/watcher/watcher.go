@@ -25,6 +25,7 @@ type Watcher struct {
 	masks          []string
 	writeCallback  WriteCallback
 	removeCallback RemoveCallback
+	breakOnError   bool
 }
 
 // Run is a blocking loop that will watch the paths provided and call the
@@ -71,7 +72,10 @@ func (w *Watcher) Run(ctx context.Context) error {
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
 				err = removePathsWithPrefix(watcher, event.Name)
 				if err != nil {
-					return err
+					log.Warn().Err(err).Str("path", event.Name).Msg("Could not remove path from watcher")
+					if w.breakOnError {
+						return err
+					}
 				}
 			}
 
@@ -87,13 +91,12 @@ func (w *Watcher) Run(ctx context.Context) error {
 					log.Debug().Str("path", event.Name).Msg("Adding new directory to watcher")
 					err = addRecursive(watcher, event.Name)
 					if err != nil {
-						return err
+						log.Warn().Err(err).Str("path", event.Name).Msg("Could not add directory to watcher")
+						if w.breakOnError {
+							return err
+						}
 					}
 					continue
-				} else {
-					log.Debug().Str("path", event.Name).Msg("Adding path to watchlist")
-					err = watcher.Add(event.Name)
-					log.Debug().Err(err).Strs("watchlist", watcher.WatchList()).Msg("Watchlist")
 				}
 			}
 
@@ -102,7 +105,11 @@ func (w *Watcher) Run(ctx context.Context) error {
 				for _, mask := range w.masks {
 					doesMatch, err := doublestar.Match(mask, event.Name)
 					if err != nil {
-						return err
+						log.Warn().Err(err).Str("path", event.Name).Str("mask", mask).Msg("Could not match path with mask")
+						if w.breakOnError {
+							return err
+						}
+						break
 					}
 
 					if doesMatch {
@@ -118,20 +125,32 @@ func (w *Watcher) Run(ctx context.Context) error {
 				}
 			}
 
+			if event.Op&fsnotify.Create == fsnotify.Create {
+				log.Debug().Str("path", event.Name).Msg("Adding path to watchlist")
+				err = watcher.Add(event.Name)
+				log.Debug().Err(err).Strs("watchlist", watcher.WatchList()).Msg("Watchlist")
+			}
+
 			isWriteEvent := event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create
 			isRemoveEvent := event.Op&fsnotify.Rename == fsnotify.Rename || event.Op&fsnotify.Remove == fsnotify.Remove
 
 			if isWriteEvent && w.writeCallback != nil {
 				err = w.writeCallback(event.Name)
 				if err != nil {
-					return err
+					log.Warn().Err(err).Str("path", event.Name).Msg("Error while processing write event")
+					if w.breakOnError {
+						return err
+					}
 				}
 			}
 
 			if isRemoveEvent && w.removeCallback != nil {
 				err = w.removeCallback(event.Name)
 				if err != nil {
-					return err
+					log.Warn().Err(err).Str("path", event.Name).Msg("Error while processing remove event")
+					if w.breakOnError {
+						return err
+					}
 				}
 			}
 
@@ -140,6 +159,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 				return nil
 			}
 			log.Error().Err(err).Msg("Received fsnotify error")
+			if w.breakOnError {
+				return err
+			}
 		}
 	}
 }
@@ -167,6 +189,12 @@ func WithWriteCallback(callback WriteCallback) Option {
 func WithRemoveCallback(callback RemoveCallback) Option {
 	return func(w *Watcher) {
 		w.removeCallback = callback
+	}
+}
+
+func WithBreakOnError(breakOnError bool) Option {
+	return func(w *Watcher) {
+		w.breakOnError = breakOnError
 	}
 }
 
