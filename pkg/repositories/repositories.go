@@ -98,6 +98,26 @@ func (t *TrieNode) findNode(prefix []string, createNewNodes bool) *TrieNode {
 	return node
 }
 
+func (t *TrieNode) FindCommand(path []string) (cmds.Command, bool) {
+	if len(path) == 0 {
+		return nil, false
+	}
+	parentPath := path[:len(path)-1]
+	commandName := path[len(path)-1]
+	node := t.findNode(parentPath, false)
+	if node == nil {
+		return nil, false
+	}
+
+	for _, c := range node.Commands {
+		if c.Description().Name == commandName {
+			return c, true
+		}
+	}
+
+	return nil, false
+}
+
 // CollectCommands collects all commands and aliases under the given prefix.
 func (t *TrieNode) CollectCommands(prefix []string, recurse bool) []cmds.Command {
 	ret := make([]cmds.Command, 0)
@@ -189,11 +209,37 @@ func NewRepository(options ...RepositoryOption) *Repository {
 }
 
 func (r *Repository) Add(commands ...cmds.Command) {
+	aliases := []*alias.CommandAlias{}
+
 	for _, command := range commands {
+		_, isAlias := command.(*alias.CommandAlias)
+		if isAlias {
+			aliases = append(aliases, command.(*alias.CommandAlias))
+			continue
+		}
+
 		prefix := command.Description().Parents
 		r.Root.InsertCommand(prefix, command)
 		if r.updateCallback != nil {
 			err := r.updateCallback(command)
+			if err != nil {
+				log.Warn().Err(err).Msg("error while updating command")
+			}
+		}
+	}
+
+	for _, alias_ := range aliases {
+		prefix := alias_.Parents
+		aliasedCommand, ok := r.Root.FindCommand(prefix)
+		if !ok {
+			log.Warn().Msgf("alias_ %s for %s not found", alias_.Description().Name, alias_.AliasFor)
+			continue
+		}
+		alias_.AliasedCommand = aliasedCommand
+
+		r.Root.InsertCommand(prefix, alias_)
+		if r.updateCallback != nil {
+			err := r.updateCallback(alias_)
 			if err != nil {
 				log.Warn().Err(err).Msg("error while updating command")
 			}
