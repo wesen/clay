@@ -34,19 +34,54 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestSimpleFileAddition(t *testing.T) {
-	addedCh := make(chan string)
+type watcherTestEvent struct {
+	eventType string // "remove" or "write"
+	path      string
+}
 
-	w := NewWatcher(WithPaths(tempDir), WithWriteCallback(func(path string) error {
-		log.Debug().Str("path", path).Msg("received path")
-		addedCh <- path
+func runWatcherTest(
+	t *testing.T,
+	main func(ctx context.Context) error,
+	expected []watcherTestEvent,
+	options ...Option,
+) ([]watcherTestEvent, error) {
+	eventCh := make(chan watcherTestEvent)
+	res := []watcherTestEvent{}
+	options_ := append(options, WithWriteCallback(func(path string) error {
+		eventCh <- watcherTestEvent{
+			eventType: "write",
+			path:      path,
+		}
 		return nil
-	}))
-
-	expectedPath := tempDir + "/test.txt"
+	}),
+		WithRemoveCallback(func(path string) error {
+			eventCh <- watcherTestEvent{
+				eventType: "remove",
+				path:      path,
+			}
+			return nil
+		}))
+	w := NewWatcher(options_...)
 
 	eg, ctx := errgroup.WithContext(context.Background())
 	ctx2, cancel := context.WithCancel(ctx)
+
+	eg.Go(func() error {
+		// wait for max 2 seconds
+		timer := time.NewTimer(2 * time.Second)
+		for {
+			select {
+			case <-timer.C:
+				return errors.New("timeout")
+			case event := <-eventCh:
+				res = append(res, event)
+				if len(res) == len(expected) {
+					cancel()
+					return nil
+				}
+			}
+		}
+	})
 
 	eg.Go(func() error {
 		log.Debug().Msg("starting watcher")
@@ -59,54 +94,41 @@ func TestSimpleFileAddition(t *testing.T) {
 	})
 
 	eg.Go(func() error {
-		defer cancel()
-
-		log.Debug().Msg("waiting for file to be added")
-
-		// wait for 2 seconds before failing, in case nothing happens
-		timer := time.NewTimer(2 * time.Second)
-		defer timer.Stop()
-
-		log.Debug().Msg("waiting for file to be added")
-
-		select {
-		case <-timer.C:
-			log.Debug().Msg("timed out waiting for file to be added")
-			assert.Fail(t, "timed out waiting for file to be added")
-			return errors.New("timed out waiting for file to be added")
-		case path := <-addedCh:
-			log.Debug().Msgf("received path %s", path)
-			assert.Equal(t, expectedPath, path)
-			if path != expectedPath {
-				return errors.New("received path does not match expected path")
-			}
-			return nil
-		case <-ctx2.Done():
-			return nil
-		}
+		timer := time.NewTimer(200 * time.Millisecond)
+		<-timer.C
+		return main(ctx2)
 	})
 
-	eg.Go(func() error {
-		// wait for 500 ms before creating file, to have the watcher settle
-		timer := time.NewTimer(500 * time.Millisecond)
-		defer timer.Stop()
-		select {
-		case <-timer.C:
+	err := eg.Wait()
+	if err == context.Canceled {
+		return res, nil
+	}
+
+	assert.Equal(t, expected, res)
+	return res, err
+}
+
+func TestSimpleFileAddition(t *testing.T) {
+	expectedPath := tempDir + "/test.txt"
+	_, err := runWatcherTest(
+		t,
+		func(_ context.Context) error {
 			log.Debug().Msgf("creating file %s", expectedPath)
 			f, err := os.Create(expectedPath)
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer func(f *os.File) {
+				_ = f.Close()
+			}(f)
 			return nil
-		case <-ctx2.Done():
-			return nil
-		}
-	})
-
-	err := eg.Wait()
-	if err == context.Canceled {
-		return
-	}
+		}, []watcherTestEvent{
+			{
+				eventType: "write",
+				path:      expectedPath,
+			},
+		},
+		WithPaths(tempDir),
+	)
 	assert.NoError(t, err)
 }
