@@ -154,6 +154,12 @@ func (w *Watcher) Run(ctx context.Context) error {
 			if event.Op&fsnotify.Create == fsnotify.Create {
 				log.Debug().Str("path", event.Name).Msg("Adding path to watchlist")
 				err = watcher.Add(event.Name)
+				if err != nil {
+					log.Warn().Err(err).Str("path", event.Name).Msg("Could not add path to watcher")
+					if w.breakOnError {
+						return err
+					}
+				}
 			}
 
 			isWriteEvent := event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create
