@@ -64,12 +64,25 @@ func (w *Watcher) Run(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			log.Debug().Str("event", event.String()).Msg("Received fsnotify event")
+			log.Debug().Str("op", event.Op.String()).
+				Str("name", event.Name).
+				Strs("watchList", watcher.WatchList()).
+				Msg("Received fsnotify event")
 
 			// if it is a deletion, remove the directory from the watcher
 			// TODO(manuel, 2023-03-27) There's a race condition here where a rename is a Create followed by a Remove.
 			// See also https://github.com/go-go-golems/cliopatra/issues/10
 			if event.Op&fsnotify.Remove == fsnotify.Remove {
+				err = removePathsWithPrefix(watcher, event.Name)
+				if err != nil {
+					log.Warn().Err(err).Str("path", event.Name).Msg("Could not remove path from watcher")
+					if w.breakOnError {
+						return err
+					}
+				}
+			}
+
+			if event.Op&fsnotify.Rename == fsnotify.Rename {
 				err = removePathsWithPrefix(watcher, event.Name)
 				if err != nil {
 					log.Warn().Err(err).Str("path", event.Name).Msg("Could not remove path from watcher")
@@ -87,6 +100,9 @@ func (w *Watcher) Run(ctx context.Context) error {
 					log.Debug().Err(err).Str("path", event.Name).Msg("Could not stat path")
 					continue
 				}
+
+				// if a directory was created, we always add it. For files, we must first check if it matches
+				// the globs.
 				if info.IsDir() {
 					log.Debug().Str("path", event.Name).Msg("Adding new directory to watcher")
 					err = addRecursive(watcher, event.Name)
@@ -100,6 +116,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 				}
 			}
 
+			// check if the path matches the globs
 			if len(w.masks) > 0 {
 				matched := false
 				for _, mask := range w.masks {
@@ -125,10 +142,24 @@ func (w *Watcher) Run(ctx context.Context) error {
 				}
 			}
 
+			if event.Name == "" {
+				// This is a workaround for a bug in fsnotify where the name is empty.
+				// This might be a race condition with removing the renamed file and adding it again.
+				// The Rename event is triggered by MOVE_FROM. Ignoring the empty path seems to work fine,
+				// the Rename on the proper path is triggered afterwards.
+				continue
+			}
+
+			// if the new file is valid, add it to the watcher for changes and removal
 			if event.Op&fsnotify.Create == fsnotify.Create {
 				log.Debug().Str("path", event.Name).Msg("Adding path to watchlist")
 				err = watcher.Add(event.Name)
-				log.Debug().Err(err).Strs("watchlist", watcher.WatchList()).Msg("Watchlist")
+				if err != nil {
+					log.Warn().Err(err).Str("path", event.Name).Msg("Could not add path to watcher")
+					if w.breakOnError {
+						return err
+					}
+				}
 			}
 
 			isWriteEvent := event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create
@@ -213,6 +244,12 @@ func NewWatcher(options ...Option) *Watcher {
 
 // removePathsWithPrefix removes `name` and all subdirectories from the watcher
 func removePathsWithPrefix(watcher *fsnotify.Watcher, name string) error {
+	// if the path is "", which happens on linux because we are still watching individual files there,
+	// ignore, because we would otherwise remove all the watched prefixes.
+	if name == "" {
+		log.Debug().Msg("Ignoring empty prefixes")
+		return nil
+	}
 	// we do the "recursion" by checking the watchlist of the watcher for all watched directories
 	// that has name as prefix
 	watchlist := watcher.WatchList()
