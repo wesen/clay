@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-go-golems/clay/pkg/watcher"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/alias"
@@ -16,6 +17,10 @@ func (r *Repository) Watch(
 	ctx context.Context,
 	options ...watcher.Option,
 ) error {
+	if r.loader == nil {
+		return fmt.Errorf("no command loader set")
+	}
+
 	fs := os.DirFS("/")
 	options = append(options,
 		watcher.WithWriteCallback(func(path string) error {

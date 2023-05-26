@@ -1,9 +1,11 @@
 package repositories
 
 import (
+	claycmds "github.com/go-go-golems/clay/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/alias"
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
+	"github.com/go-go-golems/glazed/pkg/help"
 	"github.com/rs/zerolog/log"
 )
 
@@ -21,8 +23,11 @@ type Repository struct {
 	updateCallback UpdateCallback
 	removeCallback RemoveCallback
 
-	// watching and loading commands
-	loader     loaders.ReaderCommandLoader
+	// fsLoader is used to load all commands on startup
+	fsLoader loaders.FSCommandLoader
+	// loader is used to reload a single command that changed while watching
+	loader loaders.ReaderCommandLoader
+	// these options are passed to the loader to create new descriptions
 	cmdOptions []cmds.CommandDescriptionOption
 }
 
@@ -37,6 +42,12 @@ func WithDirectories(directories []string) RepositoryOption {
 func WithCommandLoader(loader loaders.ReaderCommandLoader) RepositoryOption {
 	return func(r *Repository) {
 		r.loader = loader
+	}
+}
+
+func WithFSLoader(loader loaders.FSCommandLoader) RepositoryOption {
+	return func(r *Repository) {
+		r.fsLoader = loader
 	}
 }
 
@@ -79,6 +90,32 @@ func NewRepository(options ...RepositoryOption) *Repository {
 		opt(ret)
 	}
 	return ret
+}
+
+// LoadCommands initializes the repository by loading all commands from the loader,
+// if available.
+func (r *Repository) LoadCommands() error {
+	if r.fsLoader != nil {
+		// TODO(manuel, 2023-05-26): Expose the repositories helpsystem
+		// We currently do not provide or use the helpsystem,
+		// but see:
+		// https://github.com/go-go-golems/glazed/issues/163
+		helpSystem := help.NewHelpSystem()
+		locations := claycmds.CommandLocations{
+			Repositories: r.Directories,
+		}
+		commandLoader := claycmds.NewCommandLoader[cmds.Command](&locations)
+		commands, aliases, err := commandLoader.LoadCommands(r.fsLoader, helpSystem)
+		if err != nil {
+			return err
+		}
+		r.Add(commands...)
+		for _, alias := range aliases {
+			r.Add(alias)
+		}
+	}
+
+	return nil
 }
 
 func (r *Repository) Add(commands ...cmds.Command) {
