@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-go-golems/clay/pkg/watcher"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/alias"
@@ -14,10 +15,12 @@ import (
 
 func (r *Repository) Watch(
 	ctx context.Context,
-	loader loaders.ReaderCommandLoader,
-	cmdOptions []cmds.CommandDescriptionOption,
 	options ...watcher.Option,
 ) error {
+	if r.loader == nil {
+		return fmt.Errorf("no command loader set")
+	}
+
 	fs := os.DirFS("/")
 	options = append(options,
 		watcher.WithWriteCallback(func(path string) error {
@@ -42,14 +45,14 @@ func (r *Repository) Watch(
 
 			// get directory of file
 			parents := loaders.GetParentsFromDir(filepath.Dir(path))
-			cmdOptions_ := append(cmdOptions,
+			cmdOptions_ := append(r.cmdOptions,
 				cmds.WithSource(fullPath),
 				cmds.WithParents(parents...))
 			aliasOptions := []alias.Option{
 				alias.WithSource(fullPath),
 				alias.WithParents(parents...),
 			}
-			commands, err := loader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
+			commands, err := r.loader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
 			if err != nil {
 				return err
 			}

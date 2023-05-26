@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 type WriteCallback func(path string) error
@@ -66,7 +67,7 @@ func (w *Watcher) Run(ctx context.Context) error {
 			}
 			log.Debug().Str("op", event.Op.String()).
 				Str("name", event.Name).
-				Strs("watchList", watcher.WatchList()).
+				//Strs("watchList", watcher.WatchList()).
 				Msg("Received fsnotify event")
 
 			// if it is a deletion, remove the directory from the watcher
@@ -85,6 +86,11 @@ func (w *Watcher) Run(ctx context.Context) error {
 			if event.Op&fsnotify.Rename == fsnotify.Rename {
 				err = removePathsWithPrefix(watcher, event.Name)
 				if err != nil {
+					if errno, ok := err.(syscall.Errno); ok && errno == syscall.EINVAL {
+						// This means that the file was already deleted, and the inotify already removed,
+						// which can happen on a rename in linux.
+						continue
+					}
 					log.Warn().Err(err).Str("path", event.Name).Msg("Could not remove path from watcher")
 					if w.breakOnError {
 						return err
@@ -253,7 +259,10 @@ func removePathsWithPrefix(watcher *fsnotify.Watcher, name string) error {
 	// we do the "recursion" by checking the watchlist of the watcher for all watched directories
 	// that has name as prefix
 	watchlist := watcher.WatchList()
-	log.Debug().Strs("watchlist", watchlist).Str("name", name).Msg("Removing paths with prefix")
+	log.Debug().
+		//Strs("watchlist", watchlist).
+		Str("name", name).
+		Msg("Removing paths with prefix")
 	for _, path := range watchlist {
 		if strings.HasPrefix(path, name) {
 			log.Debug().Str("path", path).Msg("Removing path from watcher")
