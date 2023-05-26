@@ -14,8 +14,6 @@ import (
 
 func (r *Repository) Watch(
 	ctx context.Context,
-	loader loaders.ReaderCommandLoader,
-	cmdOptions []cmds.CommandDescriptionOption,
 	options ...watcher.Option,
 ) error {
 	fs := os.DirFS("/")
@@ -42,14 +40,14 @@ func (r *Repository) Watch(
 
 			// get directory of file
 			parents := loaders.GetParentsFromDir(filepath.Dir(path))
-			cmdOptions_ := append(cmdOptions,
+			cmdOptions_ := append(r.cmdOptions,
 				cmds.WithSource(fullPath),
 				cmds.WithParents(parents...))
 			aliasOptions := []alias.Option{
 				alias.WithSource(fullPath),
 				alias.WithParents(parents...),
 			}
-			commands, err := loader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
+			commands, err := r.loader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
 			if err != nil {
 				return err
 			}
