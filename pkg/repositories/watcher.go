@@ -7,6 +7,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/alias"
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
@@ -68,5 +69,9 @@ func (r *Repository) Watch(
 	)
 	w := watcher.NewWatcher(options...)
 
-	return w.Run(ctx)
+	err := w.Run(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "could not run watcher for repository: %s", strings.Join(r.Directories, ","))
+	}
+	return nil
 }
