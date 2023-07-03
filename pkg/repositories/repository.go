@@ -39,12 +39,16 @@ func WithDirectories(directories []string) RepositoryOption {
 	}
 }
 
+// WithCommandLoader sets the command loader to use when loading commands from
+// an updated file when it changes.
 func WithCommandLoader(loader loaders.ReaderCommandLoader) RepositoryOption {
 	return func(r *Repository) {
 		r.loader = loader
 	}
 }
 
+// WithFSLoader sets the command loader to use when loading commands from
+// the filesystem on startup or when a directory changes.
 func WithFSLoader(loader loaders.FSCommandLoader) RepositoryOption {
 	return func(r *Repository) {
 		r.fsLoader = loader

@@ -9,6 +9,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,16 +23,18 @@ func (r *Repository) Watch(
 		return fmt.Errorf("no command loader set")
 	}
 
-	fs := os.DirFS("/")
+	fs_ := os.DirFS("/")
 	options = append(options,
 		watcher.WithWriteCallback(func(path string) error {
 			log.Debug().Msgf("Loading %s", path)
-			f, err := fs.Open(strings.TrimPrefix(path, "/"))
+			f, err := fs_.Open(strings.TrimPrefix(path, "/"))
 			if err != nil {
 				log.Warn().Str("path", path).Err(err).Msg("could not open file")
 				return err
 			}
-			defer f.Close()
+			defer func(f fs.File) {
+				_ = f.Close()
+			}(f)
 
 			fullPath := path
 			// try to strip all r.Directories from path
