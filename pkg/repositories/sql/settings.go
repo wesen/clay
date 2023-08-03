@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
 	"github.com/go-go-golems/glazed/pkg/cmds/parameters"
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -98,4 +99,31 @@ func (d *DbtParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (map[
 	}
 
 	return ps, nil
+}
+
+func OpenDatabaseFromDefaultSqlConnectionLayer(
+	parsedLayers map[string]*layers.ParsedParameterLayer,
+) (*sqlx.DB, error) {
+	return OpenDatabaseFromSqlConnectionLayer(parsedLayers, "sql-connection", "dbt")
+}
+
+func OpenDatabaseFromSqlConnectionLayer(
+	parsedLayers map[string]*layers.ParsedParameterLayer,
+	sqlConnectionLayerName string,
+	dbtLayerName string,
+) (*sqlx.DB, error) {
+	sqlConnectionLayer, ok := parsedLayers[sqlConnectionLayerName]
+	if !ok {
+		return nil, errors.New("No sql-connection layer found")
+	}
+	dbtLayer, ok := parsedLayers[dbtLayerName]
+	if !ok {
+		return nil, errors.New("No dbt layer found")
+	}
+
+	config, err2 := NewConfigFromParsedLayers(sqlConnectionLayer, dbtLayer)
+	if err2 != nil {
+		return nil, err2
+	}
+	return config.Connect()
 }

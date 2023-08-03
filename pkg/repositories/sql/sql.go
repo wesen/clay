@@ -97,7 +97,7 @@ func (r *Repo) CollectCommands(prefixes []string, recurse bool) ([]cmds.Command,
 	}
 
 	transformedCommands := []cmds.Command{}
-	// Use commandLoader to load the cmds.Command from Command.Body
+	// Use commandLoader to load the cmd.Command from Command.Body
 	for _, cmd := range commands {
 		reader := strings.NewReader(cmd.Body)
 		cmds_, err := r.commandLoader.LoadCommandFromYAML(reader)
