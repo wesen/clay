@@ -14,7 +14,7 @@ import (
 var connectionFlagsYaml []byte
 
 type ConnectionParameterLayer struct {
-	layers.ParameterLayerImpl
+	layers.ParameterLayerImpl `yaml:",inline"`
 }
 
 func NewSqlConnectionParameterLayer(
@@ -53,7 +53,7 @@ func (cp *ConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Comman
 var dbtFlagsYaml []byte
 
 type DbtParameterLayer struct {
-	layers.ParameterLayerImpl
+	layers.ParameterLayerImpl `yaml:",inline"`
 }
 
 func NewDbtParameterLayer(

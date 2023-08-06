@@ -19,18 +19,12 @@ type Repo struct {
 	commandLoader loaders.YAMLCommandLoader
 }
 
-func NewRepo(connection string, tableName string, loader loaders.YAMLCommandLoader) (*Repo, error) {
-	db, err := sqlx.Open("postgres", connection)
-
-	if err != nil {
-		return nil, err
-	}
-
+func NewRepo(db *sqlx.DB, tableName string, loader loaders.YAMLCommandLoader) *Repo {
 	return &Repo{
 		db:            db,
 		tableName:     tableName,
 		commandLoader: loader, // Initialize with the loader
-	}, nil
+	}
 }
 
 type Command struct {
