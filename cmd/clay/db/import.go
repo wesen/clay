@@ -70,6 +70,9 @@ func (D *ImportCommand) Run(
 
 	inputs := ps["inputs"].([]string)
 	commands, err := fs.LoadCommandsFromInputs(&cmds2.RawCommandLoader{}, inputs)
+	if err != nil {
+		return err
+	}
 	_ = commands
 
 	return nil
