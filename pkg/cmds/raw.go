@@ -40,6 +40,10 @@ func (r *RawCommandLoader) LoadCommandFromYAML(s io.Reader, options ...cmds.Comm
 		return nil, err
 	}
 
+	for _, option := range options {
+		option(description)
+	}
+
 	return []cmds.Command{
 		&RawCommand{
 			CommandDescription: description,

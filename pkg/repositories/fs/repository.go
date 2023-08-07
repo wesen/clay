@@ -114,8 +114,8 @@ func (r *Repository) LoadCommands() error {
 			return err
 		}
 		r.Add(commands...)
-		for _, alias := range aliases {
-			r.Add(alias)
+		for _, alias_ := range aliases {
+			r.Add(alias_)
 		}
 	}
 
@@ -146,7 +146,8 @@ func (r *Repository) Add(commands ...cmds.Command) {
 		prefix := alias_.Parents
 		aliasedCommand, ok := r.Root.FindCommand(prefix)
 		if !ok {
-			log.Warn().Msgf("alias_ %s for %s not found", alias_.Description().Name, alias_.AliasFor)
+			name := alias_.Name
+			log.Warn().Msgf("alias_ %s (prefix: %v) for %s not found", name, prefix, alias_.AliasFor)
 			continue
 		}
 		alias_.AliasedCommand = aliasedCommand
