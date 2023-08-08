@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"github.com/go-go-golems/clay/pkg/repositories/sql"
+	sql2 "github.com/go-go-golems/clay/pkg/sql"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
 	"github.com/go-go-golems/glazed/pkg/cmds/parameters"
@@ -17,11 +17,11 @@ func getDBCommandCommandOptions() ([]cmds.CommandDescriptionOption, error) {
 	if err != nil {
 		return nil, err
 	}
-	sqlParameterLayer, err := sql.NewSqlConnectionParameterLayer()
+	sqlParameterLayer, err := sql2.NewSqlConnectionParameterLayer()
 	if err != nil {
 		return nil, err
 	}
-	dbtParameterLayer, err := sql.NewDbtParameterLayer()
+	dbtParameterLayer, err := sql2.NewDbtParameterLayer()
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (D *ListCommandsCommand) Run(
 	ps map[string]interface{},
 	gp middlewares.Processor,
 ) error {
-	db, err := sql.OpenDatabaseFromDefaultSqlConnectionLayer(parsedLayers)
+	db, err := sql2.OpenDatabaseFromDefaultSqlConnectionLayer(parsedLayers)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (D *ListCommandsCommand) Run(
 		_ = db.Close()
 	}(db)
 
-	t := sql.CreateTemplate(ctx, map[string]string{}, ps, db)
+	t := sql2.CreateTemplate(ctx, map[string]string{}, ps, db)
 	t_, err := t.Parse("SELECT * FROM {{.table}}")
 	if err != nil {
 		return err
@@ -89,7 +89,7 @@ func (D *ListCommandsCommand) Run(
 		return err
 	}
 
-	err = sql.RunNamedQueryIntoGlaze(ctx, db, s, ps, gp)
+	err = sql2.RunNamedQueryIntoGlaze(ctx, db, s, ps, gp)
 	if err != nil {
 		return err
 	}

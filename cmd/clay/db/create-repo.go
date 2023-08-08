@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-go-golems/clay/pkg/repositories/sql"
+	sql2 "github.com/go-go-golems/clay/pkg/sql"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
 	"github.com/go-go-golems/glazed/pkg/cmds/parameters"
@@ -43,7 +44,7 @@ func (D *CreateRepoCommand) Run(
 	parsedLayers map[string]*layers.ParsedParameterLayer,
 	ps map[string]interface{},
 ) error {
-	db, err := sql.OpenDatabaseFromDefaultSqlConnectionLayer(parsedLayers)
+	db, err := sql2.OpenDatabaseFromDefaultSqlConnectionLayer(parsedLayers)
 	if err != nil {
 		return err
 	}
