@@ -1,4 +1,4 @@
-package repositories
+package fs
 
 import (
 	"github.com/go-go-golems/glazed/pkg/cmds"
@@ -17,11 +17,7 @@ func TestEmptyNode(t *testing.T) {
 }
 
 type TestCommand struct {
-	description *cmds.CommandDescription
-}
-
-func (t *TestCommand) Description() *cmds.CommandDescription {
-	return t.description
+	*cmds.CommandDescription
 }
 
 func MakeTestCommand(parents []string, name string) cmds.Command {

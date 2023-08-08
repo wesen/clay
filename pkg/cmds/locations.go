@@ -13,6 +13,17 @@ import (
 	"os"
 )
 
+// This file contains a list of helpers to load commands on application start
+// from a list of "Locations".
+//
+// TODO(manuel, 2023-07-06) This predates the repository system and is thus probably not the most suited API.
+//
+// NOTE(manuel, 2023-07-06)
+// Most notably, the WithAdditionalLayers option can be used to add additional layers
+// to every command loaded, which is only used in escuse-me. This might also
+// be deprecated.
+
+// EmbeddedCommandLocation describes the location of a command inside an embedded fs.FS.
 type EmbeddedCommandLocation struct {
 	FS      fs.FS
 	Name    string
@@ -20,11 +31,19 @@ type EmbeddedCommandLocation struct {
 	DocRoot string
 }
 
+// CommandLocations groups all possible sources for loading commands on appplication start
+// and is used by the LoadCommands function.
 type CommandLocations struct {
-	Embedded         []EmbeddedCommandLocation
-	Repositories     []string
+	// List of embedded filesystems to load commands from
+	Embedded []EmbeddedCommandLocation
+	// List of repositories directories
+	Repositories []string
+	// List of additional layers to add to every command
 	AdditionalLayers []layers.ParameterLayer
-	HelpSystem       *help.HelpSystem
+	// Help system to register commands with
+	HelpSystem *help.HelpSystem
+	// Load embedded commands first
+	LoadEmbeddedFirst bool
 }
 
 type LoadCommandsOption func(*CommandLocations)
@@ -41,6 +60,12 @@ func NewCommandLocations(options ...LoadCommandsOption) *CommandLocations {
 	}
 
 	return ret
+}
+
+func WithLoadEmbeddedFirst(loadEmbeddedFirst bool) LoadCommandsOption {
+	return func(c *CommandLocations) {
+		c.LoadEmbeddedFirst = loadEmbeddedFirst
+	}
 }
 
 func WithEmbeddedLocations(locations ...EmbeddedCommandLocation) LoadCommandsOption {
@@ -88,8 +113,47 @@ func (c *CommandLoader[T]) LoadCommands(
 		Str("config", viper.ConfigFileUsed()).
 		Msg("Loaded configuration")
 
-	var commands []T
-	var aliases []*alias.CommandAlias
+	commands := make([]T, 0)
+	aliases := make([]*alias.CommandAlias, 0)
+
+	embeddedCommands, embeddedAliases, err := c.loadEmbeddedCommands(loader, helpSystem, options...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	repositoryCommands, repositoryAliases, err := c.loadRepositoryCommands(loader, helpSystem, options...)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if c.locations.LoadEmbeddedFirst {
+		commands = append(commands, embeddedCommands...)
+		aliases = append(aliases, embeddedAliases...)
+		commands = append(commands, repositoryCommands...)
+		aliases = append(aliases, repositoryAliases...)
+	} else {
+		commands = append(commands, repositoryCommands...)
+		aliases = append(aliases, repositoryAliases...)
+		commands = append(commands, embeddedCommands...)
+		aliases = append(aliases, embeddedAliases...)
+	}
+
+	for _, command := range commands {
+		description := command.Description()
+		description.Layers = append(description.Layers, c.locations.AdditionalLayers...)
+	}
+
+	return commands, aliases, nil
+}
+
+func (c *CommandLoader[T]) loadEmbeddedCommands(
+	loader loaders.FSCommandLoader,
+	helpSystem *help.HelpSystem,
+	options ...glazed_cmds.CommandDescriptionOption,
+) ([]T, []*alias.CommandAlias, error) {
+	commands := make([]T, 0)
+	aliases := make([]*alias.CommandAlias, 0)
+
 	for _, e := range c.locations.Embedded {
 		options_ := append([]glazed_cmds.CommandDescriptionOption{
 			glazed_cmds.WithPrependSource("embed:" + e.Name + ":"),
@@ -120,20 +184,6 @@ func (c *CommandLoader[T]) LoadCommands(
 				return nil, nil, err
 			}
 		}
-
-	}
-
-	repositoryCommands, repositoryAliases, err := c.loadRepositoryCommands(loader, helpSystem, options...)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	commands = append(commands, repositoryCommands...)
-	aliases = append(aliases, repositoryAliases...)
-
-	for _, command := range commands {
-		description := command.Description()
-		description.Layers = append(description.Layers, c.locations.AdditionalLayers...)
 	}
 
 	return commands, aliases, nil
