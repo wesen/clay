@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"github.com/go-go-golems/clay/cmd/clay/db"
 	"github.com/go-go-golems/clay/cmd/clay/repo"
 	clay "github.com/go-go-golems/clay/pkg"
 	"github.com/go-go-golems/glazed/pkg/cli"
@@ -45,6 +46,18 @@ func main() {
 	}
 	rootCmd.AddCommand(dbCmd)
 
+	listCommandsCommand, err := db.NewListCommandsCommand()
+	cobra.CheckErr(err)
+	cmd, err := cli.BuildCobraCommandFromGlazeCommand(listCommandsCommand)
+	cobra.CheckErr(err)
+	dbCmd.AddCommand(cmd)
+
+	createRepoCommand, err := db.NewCreateRepoCommand()
+	cobra.CheckErr(err)
+	cmd, err = cli.BuildCobraCommandFromBareCommand(createRepoCommand)
+	cobra.CheckErr(err)
+	dbCmd.AddCommand(cmd)
+
 	repoCmd := &cobra.Command{
 		Use:   "repo",
 		Short: "Repository management commands",
@@ -53,7 +66,7 @@ func main() {
 
 	listRepoCommandsCommand, err := repo.NewListCommand()
 	cobra.CheckErr(err)
-	cmd, err := cli.BuildCobraCommandFromGlazeCommand(listRepoCommandsCommand)
+	cmd, err = cli.BuildCobraCommandFromGlazeCommand(listRepoCommandsCommand)
 	cobra.CheckErr(err)
 	repoCmd.AddCommand(cmd)
 
