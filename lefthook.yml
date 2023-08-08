@@ -12,8 +12,6 @@ pre-commit:
   parallel: true
 
 pre-push:
-  release:
-    run: make goreleaser
   commands:
     release:
       run: make goreleaser
