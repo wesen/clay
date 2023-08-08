@@ -6,6 +6,10 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.6.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-go-golems/glazed v0.4.0
+	github.com/go-sql-driver/mysql v1.7.1
+	github.com/jmoiron/sqlx v1.3.5
+	github.com/lib/pq v1.10.9
+	github.com/mattn/go-sqlite3 v1.14.17
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.29.0
 	github.com/spf13/cobra v1.6.1
