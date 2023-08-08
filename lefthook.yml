@@ -6,10 +6,17 @@ pre-commit:
     test:
       glob: '*.go'
       run: make test
+    exhaustive:
+      glob: '*.go'
+      run: make exhaustive
   parallel: true
 
 pre-push:
+  release:
+    run: make goreleaser
   commands:
+    release:
+      run: make goreleaser
     lint:
       run: make lint
     test:
