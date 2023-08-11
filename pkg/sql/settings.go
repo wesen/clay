@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-//go:embed "flags/connection.yaml"
+//go:embed "flags/sql-connection.yaml"
 var connectionFlagsYaml []byte
 
 type ConnectionParameterLayer struct {
