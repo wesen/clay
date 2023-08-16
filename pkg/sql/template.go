@@ -257,3 +257,39 @@ func sqlEltToTemplateValue(elt interface{}) interface{} {
 		return v
 	}
 }
+
+func CleanQuery(query string) string {
+	// remove all empty whitespace lines
+	v := filter(
+		strings.Split(query, "\n"),
+		func(s string) bool {
+			return strings.TrimSpace(s) != ""
+		},
+	)
+	query = strings.Join(
+		smap(v, func(s string) string {
+			return strings.TrimRight(s, " \t")
+		}),
+		"\n",
+	)
+
+	return query
+}
+
+func smap(strs []string, f func(s string) string) []string {
+	ret := make([]string, len(strs))
+	for i, s := range strs {
+		ret[i] = f(s)
+	}
+	return ret
+}
+
+func filter(strs []string, f func(s string) bool) []string {
+	ret := make([]string, 0, len(strs))
+	for _, s := range strs {
+		if f(s) {
+			ret = append(ret, s)
+		}
+	}
+	return ret
+}
