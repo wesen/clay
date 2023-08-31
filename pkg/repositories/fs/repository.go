@@ -7,6 +7,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"github.com/go-go-golems/glazed/pkg/help"
 	"github.com/rs/zerolog/log"
+	"path/filepath"
 )
 
 // A repository is a collection of commands and aliases, that can optionally be reloaded
@@ -35,6 +36,15 @@ type RepositoryOption func(*Repository)
 
 func WithDirectories(directories []string) RepositoryOption {
 	return func(r *Repository) {
+		// convert all directories to absolute path
+		for i, directory := range directories {
+			absPath, err := filepath.Abs(directory)
+			if err != nil {
+				log.Warn().Err(err).Msgf("could not convert %s to absolute path", directory)
+				continue
+			}
+			directories[i] = absPath
+		}
 		r.Directories = directories
 	}
 }
