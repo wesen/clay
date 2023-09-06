@@ -92,6 +92,8 @@ func WithHelpSystem(helpSystem *help.HelpSystem) LoadCommandsOption {
 	}
 }
 
+// CommandLoader wraps a series of command locations and can be ued to load them all at once.
+// This is usually used to load all available commands on startup.
 type CommandLoader[T glazed_cmds.Command] struct {
 	locations *CommandLocations
 }
