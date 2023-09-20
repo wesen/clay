@@ -38,7 +38,7 @@ brews:
   - name: clay
     description: "CLAY IS A TOOL TO WORK WITH GO GO COMMAND REPOSITORIES"
     homepage: "https://github.com/go-go-golems/clay"
-    tap:
+    repository:
       owner: go-go-golems
       name: homebrew-go-go-go
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
