@@ -104,8 +104,9 @@ func InitViper(appName string, rootCmd *cobra.Command) error {
 
 	if configFile != "" {
 		viper.SetConfigFile(configFile)
+		viper.SetConfigType("yaml")
 	} else {
-		viper.AddConfigPath(".")
+		viper.SetConfigType("yaml")
 		viper.AddConfigPath(fmt.Sprintf("$HOME/.%s", appName))
 		viper.AddConfigPath(fmt.Sprintf("/etc/%s", appName))
 
