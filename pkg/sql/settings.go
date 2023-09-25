@@ -38,7 +38,7 @@ func (cp *ConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Comman
 	}
 
 	// now load from flag overrides
-	ps2, err := parameters.GatherFlagsFromCobraCommand(cmd, cp.Flags, true, cp.Prefix)
+	ps2, err := parameters.GatherFlagsFromCobraCommand(cmd, cp.Flags, true, false, cp.Prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (d *DbtParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (map[
 	}
 
 	// now load from flag overrides
-	ps2, err := parameters.GatherFlagsFromCobraCommand(cmd, d.Flags, true, d.Prefix)
+	ps2, err := parameters.GatherFlagsFromCobraCommand(cmd, d.Flags, true, false, d.Prefix)
 	if err != nil {
 		return nil, err
 	}
