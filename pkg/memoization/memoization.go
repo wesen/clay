@@ -36,6 +36,10 @@ func NewMemoCache[H Hasher, T any](capacity int) *MemoCache[H, T] {
 	}
 }
 
+func (m *MemoCache[H, T]) Capacity() int {
+	return m.capacity
+}
+
 func (m *MemoCache[H, T]) Size() int {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()

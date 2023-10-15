@@ -2,6 +2,8 @@ package memoization
 
 import (
 	"encoding/binary"
+	"fmt"
+	"os"
 	"testing"
 )
 
@@ -137,6 +139,7 @@ func TestCache(t *testing.T) {
 func FuzzCache(f *testing.F) {
 	// Define some seed values for initial scenarios
 	for _, seed := range [][]byte{
+		[]byte("7\x010\x0000000020"),
 		{0, 0, 0, 0}, // Set key 0 to 0
 		{1, 0, 0, 1}, // Set key 0 to 1
 		{2, 0},       // Get key 0
@@ -149,14 +152,13 @@ func FuzzCache(f *testing.F) {
 			t.Skip() // Skip the test if the input is less than 1 byte
 		}
 
-		const cacheSize = 10
-		cache := NewMemoCache[HInt, int](cacheSize) // Assume a function NewMemoCache that initializes a cache
+		cache := NewMemoCache[HInt, int](10) // Initialize a cache with the initial size
 
 		expectedValues := make(map[HInt]int) // Map to store expected key-value pairs
 		accessOrder := make([]HInt, 0)       // Slice to store the order of keys accessed
 
 		for i := 0; i < len(in); {
-			opCode := in[i] % 3 // Determine the operation: Set or Get
+			opCode := in[i] % 4 // Determine the operation: Set, Get, or Reset (added case for Reset)
 			i++
 
 			switch opCode {
@@ -182,7 +184,7 @@ func FuzzCache(f *testing.F) {
 				accessOrder = append(accessOrder, key) // Add the key to the access order slice
 
 				// If we exceeded the cache size, we need to evict the least recently used item
-				if len(accessOrder) > cacheSize {
+				if len(accessOrder) > cache.Capacity() {
 					evictedKey := accessOrder[0]
 					accessOrder = accessOrder[1:]
 					delete(expectedValues, evictedKey) // Remove the evicted key from expected values
@@ -212,8 +214,27 @@ func FuzzCache(f *testing.F) {
 				}
 
 				if got := cache.Get(key); got != expectedValue {
+					fmt.Fprintf(os.Stderr, "cache: capacity: %d, hashable: %v, cache: %v\n", cache.capacity, cache.hashableItems, cache.cache)
 					t.Fatalf("Get(%v) = %v, want %v", key, got, expectedValue) // The values do not match
 				}
+			case 3: // Reset operation
+				if i >= len(in) {
+					t.Skip() // Not enough input to continue, so skip
+				}
+
+				newCacheSize := int(in[i]) // Read the new cache size from the input
+				i++
+
+				if newCacheSize == 0 {
+					t.Skip() // If the size is zero, we skip this test
+				}
+
+				// Create a new cache with the specified size
+				cache = NewMemoCache[HInt, int](newCacheSize)
+
+				// clear and reinitialize the expected values
+				expectedValues = make(map[HInt]int)
+				accessOrder = make([]HInt, 0)
 			}
 		}
 	})
