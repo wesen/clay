@@ -30,7 +30,7 @@ func (p *Pool[U]) worker(id int) {
 	for {
 		job, ok := <-p.jobs
 		if !ok {
-			log.Info().Int("worker", id).Msg("Worker finished")
+			log.Debug().Int("worker", id).Msg("Worker finished")
 			return
 		}
 		jobResult, err := job()
