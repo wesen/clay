@@ -127,7 +127,7 @@ func TestCache(t *testing.T) {
 				case set:
 					cache.Set(action.key, action.value)
 				case get:
-					if got := cache.Get(action.key); got != action.expectedValue {
+					if got, _ := cache.Get(action.key); got != action.expectedValue {
 						t.Errorf("Get() = %v, want %v", got, action.expectedValue)
 					}
 				}
@@ -213,7 +213,7 @@ func FuzzCache(f *testing.F) {
 					}
 				}
 
-				if got := cache.Get(key); got != expectedValue {
+				if got, _ := cache.Get(key); got != expectedValue {
 					fmt.Fprintf(os.Stderr, "cache: capacity: %d, hashable: %v, cache: %v\n", cache.capacity, cache.hashableItems, cache.cache)
 					t.Fatalf("Get(%v) = %v, want %v", key, got, expectedValue) // The values do not match
 				}

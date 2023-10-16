@@ -48,17 +48,17 @@ func (m *MemoCache[H, T]) Size() int {
 
 // Get returns the value associated with the given hashable item.
 // If there is no corresponding value, the method returns nil.
-func (m *MemoCache[H, T]) Get(h H) T {
+func (m *MemoCache[H, T]) Get(h H) (T, bool) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	hashedKey := h.Hash()
 	if element, found := m.cache[hashedKey]; found {
 		m.evictionList.MoveToFront(element)
-		return element.Value.(*entry[T]).value
+		return element.Value.(*entry[T]).value, true
 	}
 	var result T
-	return result
+	return result, false
 }
 
 // Set sets the value for the hashable item.
