@@ -25,6 +25,7 @@ func (p *Pool) worker(id int) {
 	for job := range p.jobs {
 		err := job()
 		if err != nil {
+			// TODO(manuel, 2023-10-16) Be more lenient about job failures
 			log.Fatal().Err(err).Msgf("Worker %d: Error executing job", id)
 		}
 	}
