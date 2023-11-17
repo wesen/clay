@@ -2,12 +2,11 @@ package sql
 
 import (
 	_ "embed"
+	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
-	"github.com/go-go-golems/glazed/pkg/cmds/parameters"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 //go:embed "flags/sql-connection.yaml"
@@ -31,22 +30,7 @@ func NewSqlConnectionParameterLayer(
 }
 
 func (cp *ConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (map[string]interface{}, error) {
-	// actually hijack and load everything from viper instead of cobra...
-	ps, err := parameters.GatherFlagsFromViper(cp.Flags, false, cp.Prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	// now load from flag overrides
-	ps2, err := parameters.GatherFlagsFromCobraCommand(cmd, cp.Flags, true, false, cp.Prefix)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range ps2 {
-		ps[k] = v
-	}
-
-	return ps, nil
+	return cli.ParseFlagsFromViperAndCobraCommand(cmd, &cp.ParameterLayerImpl)
 }
 
 //go:embed "flags/dbt.yaml"
@@ -69,36 +53,7 @@ func NewDbtParameterLayer(
 }
 
 func (d *DbtParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (map[string]interface{}, error) {
-	// actually hijack and load everything from viper instead of cobra...
-	ps := make(map[string]interface{})
-
-	for _, f := range d.Flags {
-		//exhaustive:ignore
-		switch f.Type {
-		case parameters.ParameterTypeString:
-			v := viper.GetString(d.Prefix + f.Name)
-			ps[f.Name] = v
-		case parameters.ParameterTypeInteger:
-			v := viper.GetInt(d.Prefix + f.Name)
-			ps[f.Name] = v
-		case parameters.ParameterTypeBool:
-			v := viper.GetBool(d.Prefix + f.Name)
-			ps[f.Name] = v
-		default:
-			return nil, errors.Errorf("Unknown DBT parameter type %s for flag %s", f.Type, f.Name)
-		}
-	}
-
-	// now load from flag overrides
-	ps2, err := parameters.GatherFlagsFromCobraCommand(cmd, d.Flags, true, false, d.Prefix)
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range ps2 {
-		ps[k] = v
-	}
-
-	return ps, nil
+	return cli.ParseFlagsFromViperAndCobraCommand(cmd, &d.ParameterLayerImpl)
 }
 
 func OpenDatabaseFromDefaultSqlConnectionLayer(
