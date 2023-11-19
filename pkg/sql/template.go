@@ -88,6 +88,9 @@ func sqlLike(value string) string {
 	return "'%" + value + "%'"
 }
 
+// TODO(manuel, 2023-11-19) Wrap this in a templating class that can accept additional funcmaps
+// (and maybe more templating functionality)
+
 func CreateTemplate(
 	ctx context.Context,
 	subQueries map[string]string,
