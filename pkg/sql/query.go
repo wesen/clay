@@ -99,6 +99,7 @@ func RunQuery(
 	}
 
 	ps2 := map[string]interface{}{}
+
 	for k, v := range ps {
 		ps2[k] = v
 	}
@@ -136,4 +137,33 @@ func RunQuery(
 	}
 
 	return query_, rows, err
+}
+
+// TODO(manuel, 2023-11-19) Actually return bound arguments,
+// probably by adding a funcmap function that one can pipe variable into (but how do we get the name?
+// Maybe this is possible in jinja? Other option is to replace the parameters we push into the template and wrap them)
+
+// TODO(manuel, 2023-11-19) Document this section of clay
+
+func RenderQuery(
+	ctx context.Context,
+	db *sqlx.DB,
+	query string,
+	subQueries map[string]string,
+	ps map[string]interface{},
+) (string, error) {
+	t2 := CreateTemplate(ctx, subQueries, ps, db)
+
+	t, err := t2.Parse(query)
+	if err != nil {
+		return "", errors.Wrap(err, "Could not parse query template")
+	}
+
+	ret, err := templating.RenderTemplate(t, ps)
+	if err != nil {
+		return "", errors.Wrap(err, "Could not render query template")
+	}
+
+	ret = CleanQuery(ret)
+	return ret, nil
 }
