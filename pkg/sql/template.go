@@ -54,7 +54,7 @@ func sqlIntIn(values interface{}) string {
 	return strings.Join(strValues, ",")
 }
 
-func sqlDate(date interface{}) (string, error) {
+func sqlDate_(date interface{}, fullFormat string, defaultFormat string) (string, error) {
 	switch v := date.(type) {
 	case string:
 		parsedDate, err := parameters.ParseDate(v)
@@ -63,38 +63,33 @@ func sqlDate(date interface{}) (string, error) {
 		}
 		// if timezone is local, output YYYY-mm-dd
 		if parsedDate.Location() == time.Local {
-			return "'" + parsedDate.Format("2006-01-02") + "'", nil
+			return "'" + parsedDate.Format(defaultFormat) + "'", nil
 		}
-		return "'" + parsedDate.Format(time.RFC3339) + "'", nil
+		return "'" + parsedDate.Format(fullFormat) + "'", nil
 	case time.Time:
 		if v.Location() == time.Local {
-			return "'" + v.Format("2006-01-02") + "'", nil
+			return "'" + v.Format(defaultFormat) + "'", nil
 		}
-		return "'" + v.Format(time.RFC3339) + "'", nil
+		return "'" + v.Format(fullFormat) + "'", nil
 	default:
 		return "", fmt.Errorf("could not parse date %v", date)
 	}
 }
 
+func sqlDate(date interface{}) (string, error) {
+	return sqlDate_(date, time.RFC3339, "2006-01-02")
+}
+
 func sqlDateTime(date interface{}) (string, error) {
-	switch v := date.(type) {
-	case string:
-		parsedDate, err := parameters.ParseDate(v)
-		if err != nil {
-			return "", err
-		}
-		if parsedDate.Location() == time.Local {
-			return "'" + parsedDate.Format("2006-01-02T15:04:05") + "'", nil
-		}
-		return "'" + parsedDate.Format(time.RFC3339) + "'", nil
-	case time.Time:
-		if v.Location() == time.Local {
-			return "'" + v.Format("2006-01-02T15:04:05") + "'", nil
-		}
-		return "'" + v.Format(time.RFC3339) + "'", nil
-	default:
-		return "", fmt.Errorf("could not parse date %v", date)
-	}
+	return sqlDate_(date, time.RFC3339, "2006-01-02T15:04:05")
+}
+
+func sqliteDate(date interface{}) (string, error) {
+	return sqlDate_(date, "2006-01-02", "2006-01-02")
+}
+
+func sqliteDateTime(date interface{}) (string, error) {
+	return sqlDate_(date, "2006-01-02 15:04:05", "2006-01-02 15:04:05")
 }
 
 func sqlLike(value string) string {
@@ -113,15 +108,17 @@ func CreateTemplate(
 	t2 := templating.CreateTemplate("query").
 		Funcs(templating.TemplateFuncs).
 		Funcs(template.FuncMap{
-			"sqlStringIn":   sqlStringIn,
-			"sqlStringLike": sqlStringLike,
-			"sqlIntIn":      sqlIntIn,
-			"sqlIn":         sqlIn,
-			"sqlDate":       sqlDate,
-			"sqlDateTime":   sqlDateTime,
-			"sqlLike":       sqlLike,
-			"sqlString":     sqlString,
-			"sqlEscape":     sqlEscape,
+			"sqlStringIn":    sqlStringIn,
+			"sqlStringLike":  sqlStringLike,
+			"sqlIntIn":       sqlIntIn,
+			"sqlIn":          sqlIn,
+			"sqlDate":        sqlDate,
+			"sqlDateTime":    sqlDateTime,
+			"sqliteDate":     sqliteDate,
+			"sqliteDateTime": sqliteDateTime,
+			"sqlLike":        sqlLike,
+			"sqlString":      sqlString,
+			"sqlEscape":      sqlEscape,
 			"subQuery": func(name string) (string, error) {
 				s, ok := subQueries[name]
 				if !ok {
