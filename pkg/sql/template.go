@@ -61,9 +61,16 @@ func sqlDate(date interface{}) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "'" + parsedDate.Format("2006-01-02") + "'", nil
+		// if timezone is local, output YYYY-mm-dd
+		if parsedDate.Location() == time.Local {
+			return "'" + parsedDate.Format("2006-01-02") + "'", nil
+		}
+		return "'" + parsedDate.Format(time.RFC3339) + "'", nil
 	case time.Time:
-		return "'" + v.Format("2006-01-02") + "'", nil
+		if v.Location() == time.Local {
+			return "'" + v.Format("2006-01-02") + "'", nil
+		}
+		return "'" + v.Format(time.RFC3339) + "'", nil
 	default:
 		return "", fmt.Errorf("could not parse date %v", date)
 	}
@@ -76,9 +83,15 @@ func sqlDateTime(date interface{}) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return "'" + parsedDate.Format("2006-01-02 15:03:04") + "'", nil
+		if parsedDate.Location() == time.Local {
+			return "'" + parsedDate.Format("2006-01-02T15:04:05") + "'", nil
+		}
+		return "'" + parsedDate.Format(time.RFC3339) + "'", nil
 	case time.Time:
-		return "'" + v.Format("2006-01-02 15:02:03") + "'", nil
+		if v.Location() == time.Local {
+			return "'" + v.Format("2006-01-02T15:04:05") + "'", nil
+		}
+		return "'" + v.Format(time.RFC3339) + "'", nil
 	default:
 		return "", fmt.Errorf("could not parse date %v", date)
 	}
