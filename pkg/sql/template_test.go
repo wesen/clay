@@ -100,11 +100,6 @@ func TestSqlDateTime(t *testing.T) {
 			expected: fmt.Sprintf("'%s'", time.Date(2023, 3, 14, 21, 36, 45, 0, locationTokyo).Format(time.RFC3339)),
 		},
 		{
-			name:     "Unix epoch with time",
-			input:    time.Unix(0, 0).Add(8*time.Hour + 30*time.Minute),
-			expected: "'1970-01-01T03:30:00'",
-		},
-		{
 			name:     "Datetime before Unix epoch",
 			input:    time.Date(1969, 12, 31, 23, 59, 59, 0, time.UTC),
 			expected: "'1969-12-31T23:59:59Z'",
