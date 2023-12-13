@@ -7,6 +7,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"github.com/go-go-golems/glazed/pkg/help"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"io/fs"
@@ -165,18 +166,20 @@ func (c *CommandLoader[T]) loadEmbeddedCommands(
 			alias.WithPrependSource("embed:" + e.Name + ":"),
 			alias.WithStripParentsPrefix([]string{e.Root}),
 		}
-		commands_, aliases_, err := loader.LoadCommandsFromFS(e.FS, e.Root, options_, aliasOptions)
+		commands_, err := loader.LoadCommandsFromFS(e.FS, e.Root, options_, aliasOptions)
 		if err != nil {
 			return nil, nil, err
 		}
 		for _, command := range commands_ {
-			cmd, ok := command.(T)
-			if !ok {
-				return nil, nil, fmt.Errorf("command %s is not a GlazeCommand", command.Description().Name)
+			switch v := command.(type) {
+			case T:
+				commands = append(commands, v)
+			case *alias.CommandAlias:
+				aliases = append(aliases, v)
+			default:
+				return nil, nil, errors.New(fmt.Sprintf("unknown command type %T", v))
 			}
-			commands = append(commands, cmd)
 		}
-		aliases = append(aliases, aliases_...)
 
 		err = helpSystem.LoadSectionsFromFS(e.FS, e.DocRoot)
 		if err != nil {
@@ -223,7 +226,7 @@ func (c *CommandLoader[T]) loadRepositoryCommands(
 			aliasOptions := []alias.Option{
 				alias.WithPrependSource(repository + "/"),
 			}
-			commands_, aliases_, err := loader.LoadCommandsFromFS(
+			commands_, err := loader.LoadCommandsFromFS(
 				os.DirFS(repository),
 				".",
 				options_,
@@ -234,13 +237,13 @@ func (c *CommandLoader[T]) loadRepositoryCommands(
 			}
 
 			for _, command := range commands_ {
-				glazeCommand, ok := command.(T)
-				if !ok {
-					return nil, nil, fmt.Errorf("command %s is not a GlazeCommand", command.Description().Name)
+				switch v := command.(type) {
+				case T:
+					commands = append(commands, v)
+				case *alias.CommandAlias:
+					aliases = append(aliases, v)
 				}
-				commands = append(commands, glazeCommand)
 			}
-			aliases = append(aliases, aliases_...)
 
 			_, err = os.Stat(docDir)
 			if os.IsNotExist(err) {

@@ -19,7 +19,7 @@ func (r *Repository) Watch(
 	ctx context.Context,
 	options ...watcher.Option,
 ) error {
-	if r.loader == nil {
+	if r.readerLoader == nil {
 		return fmt.Errorf("no command loader set")
 	}
 
@@ -56,7 +56,7 @@ func (r *Repository) Watch(
 				alias.WithSource(fullPath),
 				alias.WithParents(parents...),
 			}
-			commands, err := r.loader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
+			commands, err := r.readerLoader.LoadCommandsFromReader(f, cmdOptions_, aliasOptions)
 			if err != nil {
 				return err
 			}
