@@ -172,10 +172,11 @@ func (c *CommandLoader[T]) loadEmbeddedCommands(
 		}
 		for _, command := range commands_ {
 			switch v := command.(type) {
-			case T:
-				commands = append(commands, v)
+			// import to put alias first as the more specific one
 			case *alias.CommandAlias:
 				aliases = append(aliases, v)
+			case T:
+				commands = append(commands, v)
 			default:
 				return nil, nil, errors.New(fmt.Sprintf("unknown command type %T", v))
 			}
@@ -238,10 +239,10 @@ func (c *CommandLoader[T]) loadRepositoryCommands(
 
 			for _, command := range commands_ {
 				switch v := command.(type) {
-				case T:
-					commands = append(commands, v)
 				case *alias.CommandAlias:
 					aliases = append(aliases, v)
+				case T:
+					commands = append(commands, v)
 				}
 			}
 
