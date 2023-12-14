@@ -2,12 +2,13 @@ package fs
 
 import (
 	"github.com/go-go-golems/glazed/pkg/cmds"
+	"github.com/go-go-golems/glazed/pkg/cmds/alias"
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"os"
 )
 
 func LoadCommandsFromInputs(
-	commandLoader loaders.YAMLCommandLoader,
+	commandLoader loaders.FileCommandLoader,
 	inputs []string,
 ) ([]cmds.Command, error) {
 	files := []string{}
@@ -25,11 +26,10 @@ func LoadCommandsFromInputs(
 		}
 	}
 
-	yamlFSLoader := loaders.NewYAMLFSCommandLoader(commandLoader)
-	yamlLoader := &loaders.YAMLReaderCommandLoader{YAMLCommandLoader: commandLoader}
+	fsLoader := loaders.NewFSFileCommandLoader(commandLoader)
 	repository := NewRepository(
-		WithFSLoader(yamlFSLoader),
-		WithCommandLoader(yamlLoader),
+		WithFSLoader(fsLoader),
+		WithReaderCommandLoader(commandLoader),
 		WithDirectories(directories),
 	)
 
@@ -48,7 +48,7 @@ func LoadCommandsFromInputs(
 			_ = f.Close()
 		}(f)
 
-		cmds_, err := yamlLoader.LoadCommandFromYAML(f)
+		cmds_, err := commandLoader.LoadCommandsFromReader(f, []cmds.CommandDescriptionOption{}, []alias.Option{})
 		if err != nil {
 			return nil, err
 		}

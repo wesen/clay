@@ -47,7 +47,7 @@ func (c *ListCommand) Run(
 	gp middlewares.Processor,
 ) error {
 	inputs := ps["inputs"].([]string)
-	commands, err := fs.LoadCommandsFromInputs(&cmds2.RawCommandLoader{}, inputs)
+	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), inputs)
 	if err != nil {
 		return err
 	}
