@@ -25,9 +25,7 @@ type Repository struct {
 	removeCallback RemoveCallback
 
 	// fsLoader is used to load all commands on startup
-	fsLoader loaders.FSCommandLoader
-	// readerLoader is used to reload a single command from a single file that changed while watching
-	readerLoader loaders.ReaderCommandLoader
+	fsLoader loaders.CommandLoader
 	// these options are passed to the loader to create new descriptions
 	cmdOptions []cmds.CommandDescriptionOption
 }
@@ -49,17 +47,9 @@ func WithDirectories(directories []string) RepositoryOption {
 	}
 }
 
-// WithReaderCommandLoader sets the command loader to use when loading commands from
-// an updated file when it changes.
-func WithReaderCommandLoader(loader loaders.ReaderCommandLoader) RepositoryOption {
-	return func(r *Repository) {
-		r.readerLoader = loader
-	}
-}
-
 // WithFSLoader sets the command loader to use when loading commands from
 // the filesystem on startup or when a directory changes.
-func WithFSLoader(loader loaders.FSCommandLoader) RepositoryOption {
+func WithFSLoader(loader loaders.CommandLoader) RepositoryOption {
 	return func(r *Repository) {
 		r.fsLoader = loader
 	}

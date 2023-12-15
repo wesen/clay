@@ -8,7 +8,7 @@ import (
 )
 
 func LoadCommandsFromInputs(
-	commandLoader loaders.FileCommandLoader,
+	commandLoader loaders.CommandLoader,
 	inputs []string,
 ) ([]cmds.Command, error) {
 	files := []string{}
@@ -26,10 +26,8 @@ func LoadCommandsFromInputs(
 		}
 	}
 
-	fsLoader := loaders.NewFSFileCommandLoader(commandLoader)
 	repository := NewRepository(
-		WithFSLoader(fsLoader),
-		WithReaderCommandLoader(commandLoader),
+		WithFSLoader(commandLoader),
 		WithDirectories(directories),
 	)
 
@@ -40,15 +38,12 @@ func LoadCommandsFromInputs(
 
 	commands := repository.CollectCommands([]string{}, true)
 	for _, file := range files {
-		f, err := os.Open(file)
+		f, file_, err := loaders.FileNameToFsFilePath(file)
 		if err != nil {
 			return nil, err
 		}
-		defer func(f *os.File) {
-			_ = f.Close()
-		}(f)
 
-		cmds_, err := commandLoader.LoadCommandsFromReader(f, []cmds.CommandDescriptionOption{}, []alias.Option{})
+		cmds_, err := commandLoader.LoadCommands(f, file_, []cmds.CommandDescriptionOption{}, []alias.Option{})
 		if err != nil {
 			return nil, err
 		}

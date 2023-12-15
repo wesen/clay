@@ -106,7 +106,7 @@ func NewCommandLoader[T glazed_cmds.Command](locations *CommandLocations) *Comma
 }
 
 func (c *CommandLoader[T]) LoadCommands(
-	loader loaders.FSCommandLoader,
+	loader loaders.CommandLoader,
 	helpSystem *help.HelpSystem,
 	options ...glazed_cmds.CommandDescriptionOption,
 ) ([]T, []*alias.CommandAlias, error) {
@@ -150,7 +150,7 @@ func (c *CommandLoader[T]) LoadCommands(
 }
 
 func (c *CommandLoader[T]) loadEmbeddedCommands(
-	loader loaders.FSCommandLoader,
+	loader loaders.CommandLoader,
 	helpSystem *help.HelpSystem,
 	options ...glazed_cmds.CommandDescriptionOption,
 ) ([]T, []*alias.CommandAlias, error) {
@@ -166,7 +166,7 @@ func (c *CommandLoader[T]) loadEmbeddedCommands(
 			alias.WithPrependSource("embed:" + e.Name + ":"),
 			alias.WithStripParentsPrefix([]string{e.Root}),
 		}
-		commands_, err := loader.LoadCommandsFromFS(e.FS, e.Root, options_, aliasOptions)
+		commands_, err := loaders.LoadCommandsFromFS(e.FS, e.Root, loader, options_, aliasOptions)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -196,7 +196,7 @@ func (c *CommandLoader[T]) loadEmbeddedCommands(
 }
 
 func (c *CommandLoader[T]) loadRepositoryCommands(
-	loader loaders.FSCommandLoader,
+	loader loaders.CommandLoader,
 	helpSystem *help.HelpSystem,
 	options ...glazed_cmds.CommandDescriptionOption,
 ) ([]T, []*alias.CommandAlias, error) {
@@ -227,9 +227,10 @@ func (c *CommandLoader[T]) loadRepositoryCommands(
 			aliasOptions := []alias.Option{
 				alias.WithPrependSource(repository + "/"),
 			}
-			commands_, err := loader.LoadCommandsFromFS(
+			commands_, err := loaders.LoadCommandsFromFS(
 				os.DirFS(repository),
 				".",
+				loader,
 				options_,
 				aliasOptions,
 			)
