@@ -3,6 +3,7 @@ package cmds
 import (
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/alias"
+	"github.com/go-go-golems/glazed/pkg/cmds/layout"
 	"github.com/go-go-golems/glazed/pkg/cmds/loaders"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -12,23 +13,32 @@ import (
 
 type RawCommandLoader struct{}
 
-var _ loaders.FileCommandLoader = (*RawCommandLoader)(nil)
+var _ loaders.CommandLoader = (*RawCommandLoader)(nil)
 
 type RawCommand struct {
 	*cmds.CommandDescription
 	YAMLContent map[string]interface{}
 	Content     []byte
+	Layout      []*layout.Section
 }
 
 func (r *RawCommand) ToYAML(w io.Writer) error {
 	return yaml.NewEncoder(w).Encode(r.YAMLContent)
 }
 
-func (r *RawCommandLoader) LoadCommandsFromReader(
-	s io.Reader,
+func (r *RawCommandLoader) LoadCommands(
+	f fs.FS, entryName string,
 	options []cmds.CommandDescriptionOption,
 	aliasOptions []alias.Option,
 ) ([]cmds.Command, error) {
+	s, err := f.Open(entryName)
+	if err != nil {
+		return nil, err
+	}
+	defer func(s fs.File) {
+		_ = s.Close()
+	}(s)
+
 	// first parse the CommandDescription
 	return loaders.LoadCommandOrAliasFromReader(
 		s,
@@ -78,6 +88,6 @@ func (r2 *RawCommandLoader) IsFileSupported(f fs.FS, fileName string) bool {
 	return strings.HasSuffix(fileName, ".yaml") || strings.HasSuffix(fileName, ".yml")
 }
 
-func NewRawCommandLoader() loaders.FileCommandLoader {
+func NewRawCommandLoader() loaders.CommandLoader {
 	return &RawCommandLoader{}
 }
