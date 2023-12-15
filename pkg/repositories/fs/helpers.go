@@ -36,12 +36,14 @@ func LoadCommandsFromInputs(
 		return nil, err
 	}
 
-	// create normal fs.FS
-	f := os.DirFS("/")
-
 	commands := repository.CollectCommands([]string{}, true)
 	for _, file := range files {
-		cmds_, err := commandLoader.LoadCommands(f, file, []cmds.CommandDescriptionOption{}, []alias.Option{})
+		f, file_, err := loaders.FileNameToFsFilePath(file)
+		if err != nil {
+			return nil, err
+		}
+
+		cmds_, err := commandLoader.LoadCommands(f, file_, []cmds.CommandDescriptionOption{}, []alias.Option{})
 		if err != nil {
 			return nil, err
 		}
