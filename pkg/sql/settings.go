@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
+	"github.com/go-go-golems/glazed/pkg/cmds/parameters"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -29,7 +30,7 @@ func NewSqlConnectionParameterLayer(
 	return ret, nil
 }
 
-func (cp *ConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (map[string]interface{}, error) {
+func (cp *ConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (*parameters.ParsedParameters, error) {
 	return cli.ParseFlagsFromViperAndCobraCommand(cmd, &cp.ParameterLayerImpl)
 }
 
@@ -52,7 +53,7 @@ func NewDbtParameterLayer(
 	}, nil
 }
 
-func (d *DbtParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (map[string]interface{}, error) {
+func (d *DbtParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (*parameters.ParsedParameters, error) {
 	return cli.ParseFlagsFromViperAndCobraCommand(cmd, &d.ParameterLayerImpl)
 }
 

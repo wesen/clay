@@ -15,6 +15,8 @@ type ListCommand struct {
 	*cmds.CommandDescription
 }
 
+var _ cmds.GlazeCommand = (*ListCommand)(nil)
+
 func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, error) {
 	glazeParameterLayer, err := settings.NewGlazedParameterLayers()
 	if err != nil {
@@ -40,13 +42,8 @@ func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, err
 	}, nil
 }
 
-func (c *ListCommand) Run(
-	ctx context.Context,
-	parsedLayers map[string]*layers.ParsedParameterLayer,
-	ps map[string]interface{},
-	gp middlewares.Processor,
-) error {
-	inputs := ps["inputs"].([]string)
+func (c *ListCommand) RunIntoGlazeProcessor(ctx context.Context, parsedLayers *layers.ParsedParameterLayers, gp middlewares.Processor) error {
+	inputs := parsedLayers.GetParameterValue("default", "input").([]string)
 	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), inputs)
 	if err != nil {
 		return err
