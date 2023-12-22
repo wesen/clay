@@ -43,7 +43,7 @@ func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, err
 }
 
 func (c *ListCommand) RunIntoGlazeProcessor(ctx context.Context, parsedLayers *layers.ParsedParameterLayers, gp middlewares.Processor) error {
-	inputs := parsedLayers.GetParameterValue("default", "input").([]string)
+	inputs := parsedLayers.GetParameterValue(layers.DefaultSlug, "input").([]string)
 	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), inputs)
 	if err != nil {
 		return err
