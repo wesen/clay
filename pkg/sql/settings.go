@@ -13,24 +13,39 @@ import (
 //go:embed "flags/sql-connection.yaml"
 var connectionFlagsYaml []byte
 
-type ConnectionParameterLayer struct {
+type SqlConnectionParameterLayer struct {
 	layers.ParameterLayerImpl `yaml:",inline"`
+}
+
+const SqlConnectionSlug = "sql-connection"
+
+type SqlConnectionSettings struct {
+	Host       string `glazed.parameter:"host"`
+	Port       int    `glazed.parameter:"port"`
+	Database   string `glazed.parameter:"database"`
+	User       string `glazed.parameter:"user"`
+	Password   string `glazed.parameter:"password"`
+	Schema     string `glazed.parameter:"schema"`
+	DbType     string `glazed.parameter:"db-type"`
+	Repository string `glazed.parameter:"repository"`
+	Dsn        string `glazed.parameter:"dsn"`
+	Driver     string `glazed.parameter:"driver"`
 }
 
 func NewSqlConnectionParameterLayer(
 	options ...layers.ParameterLayerOptions,
-) (*ConnectionParameterLayer, error) {
+) (*SqlConnectionParameterLayer, error) {
 	layer, err := layers.NewParameterLayerFromYAML(connectionFlagsYaml, options...)
 	if err != nil {
 		return nil, err
 	}
-	ret := &ConnectionParameterLayer{}
+	ret := &SqlConnectionParameterLayer{}
 	ret.ParameterLayerImpl = *layer
 
 	return ret, nil
 }
 
-func (cp *ConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (*parameters.ParsedParameters, error) {
+func (cp *SqlConnectionParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (*parameters.ParsedParameters, error) {
 	return cli.ParseFlagsFromViperAndCobraCommand(cmd, &cp.ParameterLayerImpl)
 }
 
@@ -39,6 +54,14 @@ var dbtFlagsYaml []byte
 
 type DbtParameterLayer struct {
 	layers.ParameterLayerImpl `yaml:",inline"`
+}
+
+const DbtSlug = "dbt"
+
+type DbtSettings struct {
+	DbtProfilesPath string `glazed.parameter:"dbt-profiles-path"`
+	UseDbtProfiles  bool   `glazed.parameter:"use-dbt-profiles"`
+	DbtProfile      string `glazed.parameter:"dbt-profile"`
 }
 
 func NewDbtParameterLayer(
@@ -62,7 +85,7 @@ type DBConnectionFactory func(parsedLayers *layers.ParsedLayers) (*sqlx.DB, erro
 func OpenDatabaseFromDefaultSqlConnectionLayer(
 	parsedLayers *layers.ParsedLayers,
 ) (*sqlx.DB, error) {
-	return OpenDatabaseFromSqlConnectionLayer(parsedLayers, "sql-connection", "dbt")
+	return OpenDatabaseFromSqlConnectionLayer(parsedLayers, SqlConnectionSlug, DbtSlug)
 }
 
 var _ DBConnectionFactory = OpenDatabaseFromDefaultSqlConnectionLayer
