@@ -57,22 +57,26 @@ func (d *DbtParameterLayer) ParseFlagsFromCobraCommand(cmd *cobra.Command) (*par
 	return cli.ParseFlagsFromViperAndCobraCommand(cmd, &d.ParameterLayerImpl)
 }
 
+type DBConnectionFactory func(parsedLayers *layers.ParsedLayers) (*sqlx.DB, error)
+
 func OpenDatabaseFromDefaultSqlConnectionLayer(
-	parsedLayers map[string]*layers.ParsedParameterLayer,
+	parsedLayers *layers.ParsedLayers,
 ) (*sqlx.DB, error) {
 	return OpenDatabaseFromSqlConnectionLayer(parsedLayers, "sql-connection", "dbt")
 }
 
+var _ DBConnectionFactory = OpenDatabaseFromDefaultSqlConnectionLayer
+
 func OpenDatabaseFromSqlConnectionLayer(
-	parsedLayers map[string]*layers.ParsedParameterLayer,
+	parsedLayers *layers.ParsedLayers,
 	sqlConnectionLayerName string,
 	dbtLayerName string,
 ) (*sqlx.DB, error) {
-	sqlConnectionLayer, ok := parsedLayers[sqlConnectionLayerName]
+	sqlConnectionLayer, ok := parsedLayers.Get(sqlConnectionLayerName)
 	if !ok {
 		return nil, errors.New("No sql-connection layer found")
 	}
-	dbtLayer, ok := parsedLayers[dbtLayerName]
+	dbtLayer, ok := parsedLayers.Get(dbtLayerName)
 	if !ok {
 		return nil, errors.New("No dbt layer found")
 	}

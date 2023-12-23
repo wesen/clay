@@ -42,9 +42,19 @@ func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, err
 	}, nil
 }
 
-func (c *ListCommand) RunIntoGlazeProcessor(ctx context.Context, parsedLayers *layers.ParsedParameterLayers, gp middlewares.Processor) error {
-	inputs := parsedLayers.GetParameterValue(layers.DefaultSlug, "input").([]string)
-	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), inputs)
+type ListSettings struct {
+	Inputs []string `glazed.parameter:"inputs"`
+}
+
+func (c *ListCommand) RunIntoGlazeProcessor(ctx context.Context, parsedLayers *layers.ParsedLayers, gp middlewares.Processor) error {
+	s := &ListSettings{}
+	d := parsedLayers.GetDefaultParameterLayer()
+	err := d.InitializeStruct(s)
+	if err != nil {
+		return err
+	}
+
+	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), s.Inputs)
 	if err != nil {
 		return err
 	}

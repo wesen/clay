@@ -3,7 +3,6 @@ package sql
 import (
 	"fmt"
 	"github.com/go-go-golems/glazed/pkg/cmds/layers"
-	"github.com/go-go-golems/glazed/pkg/cmds/parameters"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -153,7 +152,7 @@ func (c *DatabaseConfig) Connect() (*sqlx.DB, error) {
 	return db, err
 }
 
-func OpenDatabaseFromParsedLayers(parsedLayers ...*layers.ParsedParameterLayer) (*sqlx.DB, error) {
+func OpenDatabaseFromParsedLayers(parsedLayers ...*layers.ParsedLayer) (*sqlx.DB, error) {
 	config, err2 := NewConfigFromParsedLayers(parsedLayers...)
 	if err2 != nil {
 		return nil, err2
@@ -161,10 +160,10 @@ func OpenDatabaseFromParsedLayers(parsedLayers ...*layers.ParsedParameterLayer) 
 	return config.Connect()
 }
 
-func NewConfigFromParsedLayers(parsedLayers ...*layers.ParsedParameterLayer) (*DatabaseConfig, error) {
+func NewConfigFromParsedLayers(parsedLayers ...*layers.ParsedLayer) (*DatabaseConfig, error) {
 	config := &DatabaseConfig{}
 	for _, layer := range parsedLayers {
-		err := parameters.InitializeStructFromParameters(config, layer.Parameters)
+		err := layer.Parameters.InitializeStruct(config)
 		if err != nil {
 			return nil, err
 		}
