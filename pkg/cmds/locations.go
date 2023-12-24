@@ -143,7 +143,7 @@ func (c *CommandLoader[T]) LoadCommands(
 
 	for _, command := range commands {
 		description := command.Description()
-		description.Layers.AddLayers(c.locations.AdditionalLayers...)
+		description.Layers.AppendLayers(c.locations.AdditionalLayers...)
 	}
 
 	return commands, aliases, nil
