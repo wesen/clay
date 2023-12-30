@@ -152,14 +152,6 @@ func (c *DatabaseConfig) Connect() (*sqlx.DB, error) {
 	return db, err
 }
 
-func OpenDatabaseFromParsedLayers(parsedLayers ...*layers.ParsedLayer) (*sqlx.DB, error) {
-	config, err2 := NewConfigFromParsedLayers(parsedLayers...)
-	if err2 != nil {
-		return nil, err2
-	}
-	return config.Connect()
-}
-
 func NewConfigFromParsedLayers(parsedLayers ...*layers.ParsedLayer) (*DatabaseConfig, error) {
 	config := &DatabaseConfig{}
 	for _, layer := range parsedLayers {
