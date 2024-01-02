@@ -34,7 +34,7 @@ func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, err
 				parameters.WithRequired(true),
 			),
 		),
-		cmds.WithLayers(glazeParameterLayer),
+		cmds.WithLayersList(glazeParameterLayer),
 	)
 
 	return &ListCommand{
