@@ -15,6 +15,8 @@ type ListCommand struct {
 	*cmds.CommandDescription
 }
 
+var _ cmds.GlazeCommand = (*ListCommand)(nil)
+
 func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, error) {
 	glazeParameterLayer, err := settings.NewGlazedParameterLayers()
 	if err != nil {
@@ -32,7 +34,7 @@ func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, err
 				parameters.WithRequired(true),
 			),
 		),
-		cmds.WithLayers(glazeParameterLayer),
+		cmds.WithLayersList(glazeParameterLayer),
 	)
 
 	return &ListCommand{
@@ -40,14 +42,19 @@ func NewListCommand(options ...cmds.CommandDescriptionOption) (*ListCommand, err
 	}, nil
 }
 
-func (c *ListCommand) Run(
-	ctx context.Context,
-	parsedLayers map[string]*layers.ParsedParameterLayer,
-	ps map[string]interface{},
-	gp middlewares.Processor,
-) error {
-	inputs := ps["inputs"].([]string)
-	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), inputs)
+type ListSettings struct {
+	Inputs []string `glazed.parameter:"inputs"`
+}
+
+func (c *ListCommand) RunIntoGlazeProcessor(ctx context.Context, parsedLayers *layers.ParsedLayers, gp middlewares.Processor) error {
+	s := &ListSettings{}
+	d := parsedLayers.GetDefaultParameterLayer()
+	err := d.InitializeStruct(s)
+	if err != nil {
+		return err
+	}
+
+	commands, err := fs.LoadCommandsFromInputs(cmds2.NewRawCommandLoader(), s.Inputs)
 	if err != nil {
 		return err
 	}
