@@ -9,14 +9,14 @@ import (
 )
 
 func BuildCobraCommandWithSqletonMiddlewares(
-	cmd cmds.GlazeCommand,
+	cmd cmds.Command,
 	options ...cli.CobraParserOption,
 ) (*cobra.Command, error) {
 	options_ := append([]cli.CobraParserOption{
 		cli.WithCobraMiddlewaresFunc(GetCobraCommandSqletonMiddlewares),
 	}, options...)
 
-	return cli.BuildCobraCommandFromGlazeCommand(cmd, options_...)
+	return cli.BuildCobraCommandFromCommand(cmd, options_...)
 }
 
 func GetCobraCommandSqletonMiddlewares(
@@ -50,5 +50,4 @@ func GetCobraCommandSqletonMiddlewares(
 	)
 
 	return middlewares_, nil
-
 }
